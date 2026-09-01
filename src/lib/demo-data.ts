@@ -64,13 +64,19 @@ export const doctors: Doctor[] = [
   { id: "d3", name: "Dr. Priya Negi", speciality: "Endocrinologist", years: 15, clinic: "Max Super Speciality", fee: 900, km: 4.2, slots: ["11:00", "15:30"] },
 ];
 
-/** Seeded Dehradun hospitals. Replace with Overpass/Places query (amenity=hospital, emergency=yes). */
+/**
+ * Seeded Dehradun hospitals. Live results come from Overpass (amenity=hospital,
+ * emergency=yes) and are merged with these, not swapped in.
+ *
+ * Founders: call each number, then set verified:true. Never mark unverified
+ * numbers as verified. A wrong number in an emergency costs more than no number.
+ */
 export const hospitals: Hospital[] = [
-  { name: "CMI Hospital", km: 0.6, lat: 30.3265, lng: 78.0355, phone: "0135 2720000" },
-  { name: "Doon Govt. Medical College", km: 1.1, lat: 30.3318, lng: 78.0244, phone: "0135 2630000" },
-  { name: "Synergy Institute", km: 3.0, lat: 30.3060, lng: 78.0480, phone: "0135 2720000" },
-  { name: "Max Super Speciality", km: 4.2, lat: 30.3600, lng: 78.0770, phone: "0135 6673000" },
-  { name: "Shri Mahant Indiresh", km: 4.5, lat: 30.3040, lng: 77.9850, phone: "0135 2522111" },
+  { name: "CMI Hospital", km: 0.6, lat: 30.3265, lng: 78.0355, phone: "0135 2720000", verified: false },
+  { name: "Doon Govt. Medical College", km: 1.1, lat: 30.3318, lng: 78.0244, phone: "0135 2630000", verified: false },
+  { name: "Synergy Institute", km: 3.0, lat: 30.3060, lng: 78.0480, phone: "0135 2720000", verified: false },
+  { name: "Max Super Speciality", km: 4.2, lat: 30.3600, lng: 78.0770, phone: "0135 6673000", verified: false },
+  { name: "Shri Mahant Indiresh", km: 4.5, lat: 30.3040, lng: 77.9850, phone: "0135 2522111", verified: false },
 ];
 
 export const userLocation = { lat: 30.3225, lng: 78.031 };

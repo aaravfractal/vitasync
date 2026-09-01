@@ -4,7 +4,7 @@ Set RATE_LIMIT_BYPASS_TOKEN to the same value the server has and the browser's
 chat calls skip the /api/chat daily cap, so the suite can run repeatedly against
 one server. The cap itself is still tested below, without the header.
 """
-import os
+import os, re
 from playwright.sync_api import sync_playwright
 B="http://127.0.0.1:3111"
 BYPASS=os.environ.get("RATE_LIMIT_BYPASS_TOKEN","")
@@ -72,6 +72,18 @@ with sync_playwright() as p:
     pg.goto(B+"/u/k7q2m9x4e1"); pg.get_by_role("button",name="Request full record").click(); pg.wait_for_timeout(500)
     code=pg.locator("span.mono.font-bold").inner_text(); pg.get_by_label("6-digit code").fill(code); pg.get_by_role("button",name="Open record").click(); pg.wait_for_timeout(1000)
     check("public otp unlock", pg.get_by_text("Approved by the patient").count()==1)
+    # emergency directory: full list, nearest badge, call + directions per row
+    pg.goto(B+"/app/emergency"); pg.wait_for_timeout(5000)
+    check("emergency 112 and 108", pg.get_by_role("link",name="Call 112").count()==1 and pg.get_by_role("link",name="Ambulance · 108").count()==1)
+    rows=pg.locator("ul li").filter(has_text="24×7 emergency").count()
+    check("full hospital list", rows>=5)
+    calls=pg.get_by_role("link",name=re.compile(r"^Call .+")).count()
+    check("call links per hospital", calls>=5)
+    check("directions per hospital", pg.get_by_role("link",name=re.compile(r"^Directions to ")).count()==rows)
+    check("nearest badge once", pg.get_by_text("Nearest",exact=True).count()==1)
+    check("no unverified badge", pg.get_by_text("Verified number").count()==0 and pg.get_by_text("Listed",exact=True).count()>=5)
+    hrefs=pg.get_by_role("link",name=re.compile(r"^Call .+")).first.get_attribute("href")
+    check("call link is tel:", hrefs.startswith("tel:"))
     # wellness: connect a device, then log water
     pg.goto(B+"/app/wellness"); pg.wait_for_timeout(500)
     check("wellness demo label", pg.get_by_text("Demo sync · real watch sync ships with the mobile app").count()>=1)

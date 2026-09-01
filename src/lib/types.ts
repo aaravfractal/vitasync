@@ -59,7 +59,10 @@ export interface Hospital {
   km: number;
   lat: number;
   lng: number;
-  phone: string;
+  /** Absent when OpenStreetMap has no phone tag for the place. */
+  phone?: string;
+  /** True only for a number a founder has dialled. Never set it any other way. */
+  verified: boolean;
 }
 
 export interface Patient {

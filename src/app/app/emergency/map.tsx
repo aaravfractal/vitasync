@@ -16,11 +16,22 @@ const pinIcon = (L: typeof import("leaflet")) =>
  * location or hospital list changes throws "Map container is already initialized"
  * and flashes the tiles.
  */
-export function EmergencyMap({ center, hospitals }: { center: { lat: number; lng: number }; hospitals: Hospital[] }) {
+export function EmergencyMap({
+  center,
+  hospitals,
+  onSelect,
+}: {
+  center: { lat: number; lng: number };
+  hospitals: Hospital[];
+  onSelect?: (name: string) => void;
+}) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<LeafletMap>(null);
   const markers = useRef<LayerGroup>(null);
   const leaflet = useRef<typeof import("leaflet")>(null);
+  // Held in a ref so a new callback identity never forces the markers to redraw.
+  const select = useRef(onSelect);
+  select.current = onSelect;
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +58,12 @@ export function EmergencyMap({ center, hospitals }: { center: { lat: number; lng
   function draw(L: typeof import("leaflet"), m: LeafletMap, group: LayerGroup) {
     group.clearLayers();
     L.marker([center.lat, center.lng], { icon: youIcon(L) }).addTo(group);
-    hospitals.forEach((h) => L.marker([h.lat, h.lng], { icon: pinIcon(L) }).addTo(group).bindPopup(`<b>${h.name}</b><br/>${h.km} km`));
+    hospitals.forEach((h) => {
+      L.marker([h.lat, h.lng], { icon: pinIcon(L), title: h.name, alt: h.name })
+        .addTo(group)
+        .bindPopup(`<b>${h.name}</b><br/>${h.km} km`)
+        .on("click", () => select.current?.(h.name));
+    });
     m.setView([center.lat, center.lng], m.getZoom());
   }
 
@@ -59,5 +75,5 @@ export function EmergencyMap({ center, hospitals }: { center: { lat: number; lng
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center, hospitals]);
 
-  return <div ref={el} className="w-full h-[46vh] rounded-[18px] overflow-hidden border border-line" aria-label="Map of nearby hospitals" />;
+  return <div ref={el} className="w-full h-[38vh] rounded-[18px] overflow-hidden border border-line" aria-label="Map of nearby hospitals" />;
 }

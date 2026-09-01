@@ -77,7 +77,7 @@ export async function nearbyHospitals(center: Coords): Promise<Hospital[]> {
     if (!res.ok) throw new Error(`Overpass ${res.status}`);
     const data: { elements?: OverpassElement[] } = await res.json();
     return (data.elements ?? [])
-      .map((el) => {
+      .map((el): Hospital | null => {
         const lat = el.lat ?? el.center?.lat;
         const lng = el.lon ?? el.center?.lon;
         const name = el.tags?.name;
@@ -87,12 +87,35 @@ export async function nearbyHospitals(center: Coords): Promise<Hospital[]> {
           km: Number(distanceKm(center, { lat, lng }).toFixed(1)),
           lat,
           lng,
-          phone: el.tags?.phone ?? el.tags?.["contact:phone"] ?? "108",
-        } satisfies Hospital;
+          // Only what OSM actually tags. No phone means no call button, never a
+          // guess — and an OSM tag is never a number we have dialled.
+          phone: el.tags?.phone ?? el.tags?.["contact:phone"],
+          verified: false,
+        };
       })
       .filter((h): h is Hospital => h !== null)
       .sort((a, b) => a.km - b.km);
   } finally {
     clearTimeout(timer);
   }
+}
+
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * Curated list plus whatever Overpass returned, one row per hospital, nearest
+ * first. Distances are recomputed from the real centre, because the seeded km
+ * values are only right for the Dehradun fallback. A live hit wins over a
+ * curated one of the same name — same place, better coordinates — but keeps the
+ * curated phone number, since OSM's tag is not a number anyone has called.
+ */
+export function mergeHospitals(curated: Hospital[], live: Hospital[], center: Coords): Hospital[] {
+  const byName = new Map<string, Hospital>();
+  for (const h of curated) byName.set(norm(h.name), { ...h, km: Number(distanceKm(center, h).toFixed(1)) });
+  for (const h of live) {
+    const key = norm(h.name);
+    const seeded = byName.get(key);
+    byName.set(key, seeded ? { ...h, phone: seeded.phone ?? h.phone, verified: seeded.verified } : h);
+  }
+  return [...byName.values()].sort((a, b) => a.km - b.km);
 }
