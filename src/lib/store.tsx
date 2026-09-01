@@ -142,6 +142,17 @@ export function useStore() {
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
+/**
+ * Write a record that already carries its own hash — an uploaded report, whose
+ * seal is the SHA-256 of the ciphertext, not of the canonical JSON. It lands
+ * sealed in one dispatch so nothing can re-seal it with the wrong hash.
+ */
+export function writeSealedRecord(dispatch: (a: Action) => void, r: Omit<HealthRecord, "id" | "sealedAt">) {
+  const id = uid();
+  dispatch({ type: "addRecord", record: { ...r, id, sealedAt: new Date().toISOString() } });
+  return id;
+}
+
 /** Write a record, hash it, mark sealed. Mirrors what the server will do in step 1. */
 export async function writeRecord(dispatch: (a: Action) => void, r: Omit<HealthRecord, "id">) {
   const id = uid();

@@ -7,6 +7,7 @@ one server. The cap itself is still tested below, without the header.
 import os, re
 from playwright.sync_api import sync_playwright
 B="http://127.0.0.1:3111"
+PDF=b"%PDF-1.4 minimal bytes, enough to prove the encryption path"
 BYPASS=os.environ.get("RATE_LIMIT_BYPASS_TOKEN","")
 fails=[]
 def check(name, cond):
@@ -38,6 +39,34 @@ with sync_playwright() as p:
     check("hash verifies", pg.get_by_text("Matches · untampered").count()==1)
     with pg.expect_download(): pg.get_by_role("button",name="Download").click()
     check("record download", True); pg.keyboard.press("Escape")
+    # upload a report: encrypted on the device, only ciphertext stored, decrypted to view
+    pg.goto(B+"/app/record"); pg.wait_for_timeout(500)
+    pg.get_by_role("button",name="Upload report").click()
+    pg.set_input_files("input[type=file]", {"name":"lipid-panel.pdf","mimeType":"application/pdf","buffer":PDF})
+    pg.get_by_label("Title").fill("Lipid panel Aug"); pg.get_by_label("Lab or clinic").fill("Dr Lal PathLabs")
+    pg.get_by_role("button",name="Encrypt and save").click(); pg.wait_for_timeout(900)
+    check("upload lands in record", pg.get_by_text("Lipid panel Aug").count()>=1)
+    raw=pg.evaluate("localStorage.getItem('vitasync.v1')")
+    check("no plaintext in the store", "%PDF" not in raw and "JVBERi" not in raw)
+    head=pg.evaluate("""() => new Promise((res) => { const r = indexedDB.open('vitasync-vault');
+      r.onsuccess = () => { const g = r.result.transaction('blobs').objectStore('blobs').getAll();
+        g.onsuccess = () => { const rows = g.result;
+          res(rows.length ? String.fromCharCode(...new Uint8Array(rows[0].ciphertext.slice(0, 8))) : ""); }; }; })""")
+    check("stored bytes are ciphertext", head != "" and not head.startswith("%PDF"))
+    ext=pg.evaluate("""() => new Promise((res) => { const r = indexedDB.open('vitasync-vault');
+      r.onsuccess = () => { const g = r.result.transaction('keys').objectStore('keys').get('primary');
+        g.onsuccess = () => res(g.result ? g.result.extractable : null); }; })""")
+    check("key is non-extractable", ext is False)
+    pg.get_by_text("Lipid panel Aug").first.click(); pg.wait_for_timeout(900)
+    check("decrypts into a viewer", pg.locator("iframe[title='lipid-panel.pdf']").count()==1)
+    pg.get_by_role("button",name="Verify now").click(); pg.wait_for_timeout(400)
+    check("ciphertext hash verifies", pg.get_by_text("Matches · untampered").count()==1)
+    pg.get_by_role("button",name="What's stored").click(); pg.wait_for_timeout(400)
+    check("what's stored panel", pg.get_by_text("This is all that would ever leave your phone").count()==1)
+    with pg.expect_download(): pg.get_by_role("button",name="Download").click()
+    check("decrypted download", True); pg.keyboard.press("Escape")
+    pg.goto(B+"/app"); pg.wait_for_timeout(500)
+    check("upload card on home", pg.get_by_role("button",name="Upload report").count()==1)
     # vitals log
     pg.goto(B+"/app/vitals"); pg.get_by_role("button",name="Log").click(); pg.get_by_label("Metric").select_option("hr"); pg.get_by_label("Value (bpm)").fill("70"); pg.get_by_role("button",name="Save reading").click(); pg.wait_for_timeout(400)
     check("vital logged", pg.get_by_text("70 bpm").count()>=1)

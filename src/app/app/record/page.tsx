@@ -5,7 +5,10 @@ import { Sparkles } from "lucide-react";
 import { Chip, Pill, ScreenHeader, cx } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
 import { useToast } from "@/components/toast";
+import { AttachmentView } from "@/components/attachment-view";
+import { UploadReportCard, UploadReportSheet } from "@/components/upload-report";
 import { useStore } from "@/lib/store";
+import { ciphertextHash, decryptToBlob } from "@/lib/attachments";
 import { canonicalRecord, sha256Hex, shortHash } from "@/lib/hash";
 import type { HealthRecord, RecordType } from "@/lib/types";
 
@@ -41,6 +44,7 @@ export default function Record() {
   const [filter, setFilter] = useState<"all" | RecordType>("all");
   const [openRec, setOpenRec] = useState<HealthRecord | null>(null);
   const [verify, setVerify] = useState<"idle" | "ok" | "bad">("idle");
+  const [upload, setUpload] = useState(false);
 
   // Seal any unsealed entries (seed data). In production hashing happens on write, server-side.
   useEffect(() => {
@@ -49,9 +53,17 @@ export default function Record() {
 
   const shown = useMemo(() => [...state.records].filter((r) => filter === "all" || r.type === filter).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)), [state.records, filter]);
 
+  /** An upload seals its ciphertext, so re-hash what is on disk; every other entry re-hashes its canonical JSON. */
   async function reverify(r: HealthRecord) {
-    const h = await sha256Hex(canonicalRecord(r));
+    const h = await (r.attachment ? ciphertextHash(r.attachment).catch(() => "") : sha256Hex(canonicalRecord(r)));
     setVerify(h === r.sha256 ? "ok" : "bad");
+  }
+  async function download(r: HealthRecord) {
+    if (!r.attachment) return sharePdf(r);
+    const url = URL.createObjectURL(await decryptToBlob(r.attachment));
+    const a = document.createElement("a"); a.href = url; a.download = r.attachment.name; a.click();
+    URL.revokeObjectURL(url);
+    toast("Decrypted on this device and saved");
   }
   function sharePdf(r: HealthRecord) {
     const text = `${r.title}\n${r.provider}\n${new Date(r.occurredAt).toLocaleString("en-IN")}\n\n${r.summary}\n\nSHA-256: ${r.sha256}`;
@@ -67,7 +79,9 @@ export default function Record() {
         subtitle={`${state.records.length} entries · sealed`}
         right={<Link href="/app/reports" className="inline-flex items-center gap-1.5 rounded-full bg-tint border border-tint-border text-teal px-3.5 min-h-[36px] text-[13px] font-semibold shrink-0"><Sparkles size={14} /> Reports summary</Link>}
       />
-      <div className="flex gap-2 mb-4">{filters.map((f) => <Chip key={f.key} active={filter === f.key} onClick={() => setFilter(f.key)}>{f.label}</Chip>)}</div>
+      <div className="flex gap-2 mb-3">{filters.map((f) => <Chip key={f.key} active={filter === f.key} onClick={() => setFilter(f.key)}>{f.label}</Chip>)}</div>
+
+      <UploadReportCard onClick={() => setUpload(true)} className="mb-4" />
 
       <ol className="relative border-l-2 border-line ml-2.5 pl-6 space-y-4 pb-16">
         {shown.map((r, i) => {
@@ -92,8 +106,9 @@ export default function Record() {
           <>
             <div className="text-[13px] text-muted">{openRec.provider} · {new Date(openRec.occurredAt).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
             <p className="text-[14.5px] mt-3">{openRec.summary}</p>
+            {openRec.attachment && <AttachmentView attachment={openRec.attachment} />}
             <div className="mt-4 bg-paper border border-line rounded-[14px] p-3 text-[12.5px]">
-              <div className="text-muted">SHA-256</div>
+              <div className="text-muted">{openRec.attachment ? "SHA-256 of the encrypted file" : "SHA-256"}</div>
               <div className="mono break-all">{openRec.sha256 ?? "pending"}</div>
               <button onClick={() => reverify(openRec)} className="text-teal font-semibold mt-2">Verify now</button>
               {verify === "ok" && <span className="ml-3 text-teal">Matches · untampered</span>}
@@ -101,12 +116,13 @@ export default function Record() {
               <div className="text-faint mt-1">{shortHash(openRec.sha256)} · anchoring on Polygon testnet next</div>
             </div>
             <div className="flex gap-2 mt-4">
-              {openRec.type === "rx" ? <Pill href="/app/refills" className="flex-1">Refill now</Pill> : <Pill onClick={() => sharePdf(openRec)} className="flex-1">Download</Pill>}
+              {openRec.type === "rx" ? <Pill href="/app/refills" className="flex-1">Refill now</Pill> : <Pill onClick={() => download(openRec)} className="flex-1">Download</Pill>}
               <Pill href="/app/id" variant="secondary" className="flex-1">Share</Pill>
             </div>
           </>
         )}
       </Sheet>
+      <UploadReportSheet open={upload} onClose={() => setUpload(false)} />
     </>
   );
 }

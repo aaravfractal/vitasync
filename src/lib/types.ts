@@ -11,6 +11,17 @@ export interface AiSession {
   nextStep: string;
 }
 
+/**
+ * A file encrypted on this device. The ciphertext and iv sit in IndexedDB under
+ * `id`; the record keeps only this pointer, and `sha256` of the ciphertext.
+ */
+export interface Attachment {
+  id: string;
+  name: string;
+  mime: string;
+  size: number; // plaintext bytes, for display only
+}
+
 export interface HealthRecord {
   id: string;
   type: RecordType;
@@ -22,6 +33,7 @@ export interface HealthRecord {
   anchorTx?: string | null; // null until Polygon anchoring ships
   sealedAt?: string;
   ai?: AiSession; // ai_session records only
+  attachment?: Attachment; // uploaded reports. sha256 is then the ciphertext hash.
 }
 
 export interface Vital {

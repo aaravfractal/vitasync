@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Users, KeyRound, Building2, Languages, LifeBuoy, ShieldCheck, ChevronRight, Link2 } from "lucide-react";
 import { Card, IconChip, ScreenHeader } from "@/components/ui";
 import { useStore } from "@/lib/store";
+import { clearAttachments } from "@/lib/attachments";
 
 export default function Profile() {
   const { state, dispatch } = useStore();
@@ -38,7 +39,7 @@ export default function Profile() {
           </Link>
         ))}
       </Card>
-      <Card className="mt-3"><button onClick={() => { dispatch({ type: "signOut" }); router.push("/onboarding"); }} className="w-full text-left text-danger font-semibold text-[14px]">Sign out</button></Card>
+      <Card className="mt-3"><button onClick={() => { clearAttachments(); dispatch({ type: "signOut" }); router.push("/onboarding"); }} className="w-full text-left text-danger font-semibold text-[14px]">Sign out</button></Card>
       <p className="text-center text-[11.5px] text-faint mt-6">VitaSync AI · v1.4 · Built in Dehradun</p>
     </>
   );

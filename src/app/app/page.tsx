@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Stethoscope, FileText, PillBottle, HeartPulse, ShieldCheck, Siren, QrCode, BellRing, X, Activity, ChevronRight } from "lucide-react";
 import { Card, IconChip, Pill, VerifiedPill } from "@/components/ui";
+import { UploadReportCard, UploadReportSheet } from "@/components/upload-report";
 import { useStore } from "@/lib/store";
 import { daysUsed } from "@/lib/demo-data";
 import { dayOrEmpty, formatSteps, todayKey } from "@/lib/wellness";
@@ -15,6 +16,7 @@ export default function Home() {
   const due = [...state.prescriptions].map((p) => p.daysPrescribed - daysUsed(p)).sort((a, b) => a - b)[0];
   const bp = state.vitals.find((v) => v.metric === "bp");
   const [now] = useState(() => Date.now());
+  const [upload, setUpload] = useState(false);
   const next = [...state.appointments].sort((a, b) => a.when.localeCompare(b.when)).find((a) => new Date(a.when).getTime() >= now - 86400000) ?? state.appointments[0];
   const actions = [
     { href: "/app/book", icon: Stethoscope, title: "Book doctor", sub: "GPs near you, today" },
@@ -61,6 +63,8 @@ export default function Home() {
         <ChevronRight size={18} className="text-faint shrink-0" />
       </Link>
 
+      <UploadReportCard onClick={() => setUpload(true)} className="mt-3" />
+
       <div className="grid grid-cols-2 gap-3 mt-3">
         {actions.map((a) => (
           <Link key={a.href} href={a.href} className="rounded-[18px] bg-surface border border-line p-4 hover:border-tint-border">
@@ -85,6 +89,7 @@ export default function Home() {
         </Card>
       )}
       <Link href="/app/vault" className="mt-3 flex items-center gap-2 text-[12.5px] text-muted"><ShieldCheck size={16} className="text-teal" /> Every entry is sealed with SHA-256. Nobody can change it.</Link>
+      <UploadReportSheet open={upload} onClose={() => setUpload(false)} />
     </>
   );
 }
