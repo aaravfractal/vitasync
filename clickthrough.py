@@ -1,12 +1,20 @@
-"""Click every button in the app and assert something happened. Run with the dev/prod server on :3111."""
+"""Click every button in the app and assert something happened. Run with the dev/prod server on :3111.
+
+Set RATE_LIMIT_BYPASS_TOKEN to the same value the server has and the browser's
+chat calls skip the /api/chat daily cap, so the suite can run repeatedly against
+one server. The cap itself is still tested below, without the header.
+"""
+import os
 from playwright.sync_api import sync_playwright
 B="http://127.0.0.1:3111"
+BYPASS=os.environ.get("RATE_LIMIT_BYPASS_TOKEN","")
 fails=[]
 def check(name, cond):
     print(("PASS " if cond else "FAIL ")+name); 
     if not cond: fails.append(name)
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_page(viewport={"width":390,"height":844})
+    if BYPASS: pg.set_extra_http_headers({"x-vs-bypass": BYPASS})
     # onboarding → otp → app
     pg.goto(B+"/onboarding"); pg.get_by_role("button",name="Continue with phone number").click()
     pg.get_by_label("Mobile number").fill("9876543210"); pg.get_by_role("button",name="Send code").click()
@@ -64,6 +72,11 @@ with sync_playwright() as p:
     pg.goto(B+"/u/k7q2m9x4e1"); pg.get_by_role("button",name="Request full record").click(); pg.wait_for_timeout(500)
     code=pg.locator("span.mono.font-bold").inner_text(); pg.get_by_label("6-digit code").fill(code); pg.get_by_role("button",name="Open record").click(); pg.wait_for_timeout(1000)
     check("public otp unlock", pg.get_by_text("Approved by the patient").count()==1)
+    # chat daily cap, with no bypass header: the 6th request must be refused
+    api=p.request.new_context(base_url=B)
+    codes=[api.post("/api/chat", data={"messages":[{"role":"user","content":"headache"}]}).status for _ in range(6)]
+    check("chat daily cap 429s", codes[5]==429)
+    api.dispose()
     # sign out
     pg.goto(B+"/app/profile"); pg.get_by_role("button",name="Sign out").click(); pg.wait_for_url("**/onboarding"); check("sign out", True)
     b.close()

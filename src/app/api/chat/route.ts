@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { clientIp, takeDaily } from "@/lib/rate-limit";
+import { clientIp, rateLimitBypassed, takeDaily } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -28,8 +28,10 @@ function mock(messages: Msg[]) {
 }
 
 export async function POST(req: Request) {
-  const gate = takeDaily(`chat:${clientIp(req)}`, DAILY_LIMIT);
-  if (!gate.ok) return NextResponse.json({ ok: false, error: "Daily limit reached. Plus gets unlimited." }, { status: 429 });
+  if (!rateLimitBypassed(req)) {
+    const gate = takeDaily(`chat:${clientIp(req)}`, DAILY_LIMIT);
+    if (!gate.ok) return NextResponse.json({ ok: false, error: "Daily limit reached. Plus gets unlimited." }, { status: 429 });
+  }
 
   const { messages } = (await req.json()) as { messages: Msg[] };
   if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ ...mock(messages), mock: true });
