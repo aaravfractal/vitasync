@@ -1,7 +1,8 @@
 "use client";
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from "react";
 import { patient as seedPatient, records as seedRecords, vitals as seedVitals, prescriptions as seedRx } from "./demo-data";
-import type { HealthRecord, Patient, Prescription, Vital } from "./types";
+import type { ConnectedDevice, HealthRecord, Patient, Prescription, Vital, WellnessDay, WellnessTargets } from "./types";
+import { emptyDay } from "./wellness";
 import { canonicalRecord, sha256Hex } from "./hash";
 
 export interface Appointment { id: string; doctor: string; clinic: string; when: string; note: string }
@@ -25,6 +26,10 @@ export interface State {
   reminders: Reminder[];
   language: "en" | "hi";
   clinics: string[];
+  device: ConnectedDevice | null;
+  targets: WellnessTargets;
+  wellness: WellnessDay;
+  lastWellnessLog: string; // date of the last activity summary written to the record
 }
 
 const initial: State = {
@@ -47,6 +52,10 @@ const initial: State = {
   reminders: [],
   language: "en",
   clinics: ["Doon Clinic", "Dr Lal PathLabs", "SRL Diagnostics"],
+  device: null,
+  targets: { steps: 8000, calories: 400, activeMinutes: 45, water: 8 },
+  wellness: emptyDay(""),
+  lastWellnessLog: "",
 };
 
 type Action =
@@ -65,7 +74,16 @@ type Action =
   | { type: "setLanguage"; language: "en" | "hi" }
   | { type: "addReminder"; reminder: Reminder }
   | { type: "removeReminder"; id: string }
+  | { type: "connectDevice"; device: ConnectedDevice; day: WellnessDay }
+  | { type: "disconnectDevice" }
+  | { type: "syncWellness"; date: string; steps: number; calories: number; activeMinutes: number }
+  | { type: "addWater"; date: string }
+  | { type: "setTargets"; targets: WellnessTargets }
+  | { type: "wellnessLogged"; date: string }
   | { type: "reset" };
+
+/** Today's row, or a fresh one — never yesterday's numbers under today's date. */
+const dayOf = (s: State, date: string) => (s.wellness.date === date ? s.wellness : emptyDay(date));
 
 function reducer(s: State, a: Action): State {
   switch (a.type) {
@@ -86,6 +104,19 @@ function reducer(s: State, a: Action): State {
     case "setLanguage": return { ...s, language: a.language };
     case "addReminder": return { ...s, reminders: [a.reminder, ...s.reminders] };
     case "removeReminder": return { ...s, reminders: s.reminders.filter((r) => r.id !== a.id) };
+    case "connectDevice": return { ...s, device: a.device, wellness: a.day };
+    case "disconnectDevice": return { ...s, device: null };
+    case "syncWellness": {
+      const d = dayOf(s, a.date);
+      // Deltas only, so the day can never tick backwards.
+      return { ...s, wellness: { ...d, steps: d.steps + a.steps, calories: d.calories + a.calories, activeMinutes: d.activeMinutes + a.activeMinutes } };
+    }
+    case "addWater": {
+      const d = dayOf(s, a.date);
+      return { ...s, wellness: { ...d, water: Math.min(d.water + 1, 20) } };
+    }
+    case "setTargets": return { ...s, targets: a.targets };
+    case "wellnessLogged": return { ...s, lastWellnessLog: a.date };
   }
 }
 

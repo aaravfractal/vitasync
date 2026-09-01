@@ -27,7 +27,9 @@ The share/OTP gate is stateless: `src/lib/share.ts` puts an HMAC-signed challeng
 
 `/api/chat` uses Claude when `ANTHROPIC_API_KEY` is set, mock otherwise, capped at 5 requests per IP per day (`src/lib/rate-limit.ts`, in-memory); over the cap it returns 429 and the chat shows "Daily limit reached. Plus gets unlimited." with a link to `/pricing`. Setting `RATE_LIMIT_BYPASS_TOKEN` locally lets a request carrying a matching `x-vs-bypass` header skip the cap, so `clickthrough.py` can run repeatedly against one server — never set it in Vercel. `/api/reports/summary` follows the same Claude-or-mock pattern. Emergency uses `navigator.geolocation` and Overpass (`amenity=hospital` + `emergency=yes`, 10 km) on the device, falling back to the seeded Dehradun list if it is denied, fails, or takes over 4 s.
 
-Screens built: landing, onboarding, pricing, home, symptom, book (with confirmation), record, AI session report (`/app/record/session/{id}`), reports summary (`/app/reports`), vitals, refills, vault, emergency, profile, my-id, public `/u/{token}`.
+`/app/wellness` is a **demo** of step 9 (watch sync): pairing is simulated, and a paired device drifts today's numbers upward every 20–40 s while the screen is open (`src/lib/wellness.ts`, day keyed by local date, deltas only, reset at midnight). It carries a persistent "Demo sync · real watch sync ships with the mobile app" label. Never describe it as HealthKit or Health Connect — those need the native app.
+
+Screens built: landing, onboarding, pricing, home, symptom, book (with confirmation), record, AI session report (`/app/record/session/{id}`), reports summary (`/app/reports`), vitals, wellness (`/app/wellness`), refills, vault, emergency, profile, my-id, public `/u/{token}`.
 
 ## Build order (do these in order, one PR each)
 1. **Auth + record spine. DEFERRED** until a clinic partner is signed — we ship on the local store until then. When it comes back: Supabase phone OTP, `users` row on first login with `vs_id` and random `share_token`, records table, upload with client-side encryption (WebCrypto AES-GCM, key derived on device, never sent), hash on write, timeline reads from DB. Migration: `supabase/migrations/0001_init.sql`. It replaces the store's reads/writes, keeping the same action names.
@@ -38,7 +40,7 @@ Screens built: landing, onboarding, pricing, home, symptom, book (with confirmat
 6. **Anchoring.** Daily Merkle root of new hashes → Polygon Amoy; store `anchor_tx`; public `/verify/{sha}` page with Polygonscan link; badge logic tied to `anchor_tx`.
 7. **ABHA/ABDM.** Sandbox first. Start paperwork now; it's the longest lead item.
 8. **Doctor side.** Only after clinics are signed.
-9. **Watch sync.** Needs native (Expo). Last.
+9. **Watch sync.** Needs native (Expo). Last. `/app/wellness` is the demo shell it will plug into — keep the store actions (`connectDevice`, `syncWellness`, `addWater`, `setTargets`) and swap the simulator for real reads.
 
 ## Conventions
 Server components by default; `"use client"` only where state or browser APIs are needed. Every API route validates input and returns `{ ok, error }` shape. No secrets on the client. Keep files small; one screen per folder under `src/app/app/*`. Keep copy in sentence case, no exclamation marks. Add a Playwright screenshot to any PR that touches UI (`python3 shots.py`).

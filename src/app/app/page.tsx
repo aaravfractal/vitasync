@@ -1,10 +1,11 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Stethoscope, FileText, PillBottle, HeartPulse, ShieldCheck, Siren, QrCode, BellRing, X } from "lucide-react";
+import { Stethoscope, FileText, PillBottle, HeartPulse, ShieldCheck, Siren, QrCode, BellRing, X, Activity, ChevronRight } from "lucide-react";
 import { Card, IconChip, Pill, VerifiedPill } from "@/components/ui";
 import { useStore } from "@/lib/store";
 import { daysUsed } from "@/lib/demo-data";
+import { dayOrEmpty, formatSteps, todayKey } from "@/lib/wellness";
 
 function greeting() { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; }
 
@@ -22,6 +23,7 @@ export default function Home() {
     { href: "/app/vitals", icon: HeartPulse, title: "Vitals", sub: `BP ${bp?.value}, normal` },
   ];
   const d = next ? new Date(next.when) : null;
+  const day = dayOrEmpty(state.wellness, todayKey());
 
   return (
     <>
@@ -45,6 +47,19 @@ export default function Home() {
         <p className="text-[13.5px] text-white/85 mt-1 mb-4">Describe it in plain words. One question back, then a next step.</p>
         <Pill href="/app/symptom" variant="secondary" className="bg-white border-white text-teal">Check a symptom</Pill>
       </Card>
+
+      <Link href="/app/wellness" className="mt-3 rounded-[18px] bg-surface border border-line p-4 flex items-center gap-3 hover:border-tint-border">
+        <IconChip icon={Activity} size={42} />
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold text-[14px]">Wellness</div>
+          <div className="text-[12px] text-muted">
+            {state.device
+              ? `${formatSteps(day.steps)} steps · ${day.water}/${state.targets.water} glasses today`
+              : "Connect a watch or band, track steps and water"}
+          </div>
+        </div>
+        <ChevronRight size={18} className="text-faint shrink-0" />
+      </Link>
 
       <div className="grid grid-cols-2 gap-3 mt-3">
         {actions.map((a) => (

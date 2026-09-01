@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Send } from "lucide-react";
 import { Overline, Pill, ScreenHeader } from "@/components/ui";
 import { uid, useStore, writeRecord } from "@/lib/store";
@@ -13,11 +14,22 @@ type Reply = { reply: string; question: boolean; urgency: Urgency; next_step: Ne
 
 const urgencyLine: Record<Urgency, string> = { emergency: "Emergency", gp_today: "See a GP today", low: "Low urgency" };
 
-export default function Symptom() {
+/** useSearchParams needs a boundary for this route to stay statically rendered. */
+export default function SymptomPage() {
+  return (
+    <Suspense fallback={null}>
+      <Symptom />
+    </Suspense>
+  );
+}
+
+function Symptom() {
+  // Prefilled by the "Ask the AI about this" links on /app/wellness.
+  const params = useSearchParams();
   const [messages, setMessages] = useState<Msg[]>([
     { role: "assistant", content: "Tell me what's going on, in your own words." },
   ]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(() => params.get("q") ?? "");
   const [busy, setBusy] = useState(false);
   const [next, setNext] = useState<Next>(null);
   const [urgency, setUrgency] = useState<string>("low");

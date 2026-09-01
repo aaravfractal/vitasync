@@ -72,6 +72,22 @@ with sync_playwright() as p:
     pg.goto(B+"/u/k7q2m9x4e1"); pg.get_by_role("button",name="Request full record").click(); pg.wait_for_timeout(500)
     code=pg.locator("span.mono.font-bold").inner_text(); pg.get_by_label("6-digit code").fill(code); pg.get_by_role("button",name="Open record").click(); pg.wait_for_timeout(1000)
     check("public otp unlock", pg.get_by_text("Approved by the patient").count()==1)
+    # wellness: connect a device, then log water
+    pg.goto(B+"/app/wellness"); pg.wait_for_timeout(500)
+    check("wellness demo label", pg.get_by_text("Demo sync · real watch sync ships with the mobile app").count()>=1)
+    pg.get_by_role("button",name="Apple Watch").click(); pg.wait_for_timeout(1800)
+    check("device connects", pg.get_by_text("Connected").count()>=1)
+    pg.goto(B+"/app"); pg.wait_for_timeout(600)
+    check("wellness card on home", pg.get_by_role("link",name="Wellness").count()==1)
+    pg.goto(B+"/app/wellness"); pg.wait_for_timeout(600)
+    check("device survives refresh", pg.get_by_text("Connected").count()>=1)
+    before=pg.get_by_text("of 8 glasses").inner_text()
+    pg.get_by_role("button",name="+ Add glass").click(); pg.wait_for_timeout(400)
+    check("water +1", pg.get_by_text("of 8 glasses").inner_text()!=before)
+    pg.get_by_role("link",name="Ask the AI about this").first.click(); pg.wait_for_url("**/app/symptom**"); pg.wait_for_timeout(600)
+    check("ai prefilled", len(pg.get_by_label("Describe how you feel").input_value())>10)
+    pg.goto(B+"/app/record"); pg.wait_for_timeout(700)
+    check("activity summary in record", pg.get_by_text("Activity summary —").count()>=1)
     # chat daily cap, with no bypass header: the 6th request must be refused
     api=p.request.new_context(base_url=B)
     codes=[api.post("/api/chat", data={"messages":[{"role":"user","content":"headache"}]}).status for _ in range(6)]
