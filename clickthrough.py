@@ -49,7 +49,7 @@ with sync_playwright() as p:
     check("family added", pg.get_by_text("Meera Rawat").count()>=1)
     pg.get_by_role("button",name="Make caregiver").first.click(); pg.wait_for_timeout(200); check("caregiver toggle", pg.get_by_text("receives approval codes").count()>=2)
     # language, abha, clinics, help
-    pg.goto(B+"/app/profile/language"); pg.get_by_role("button",name="हिन्दी (Hindi)").click(); pg.wait_for_timeout(200); pg.goto(B+"/app/profile"); pg.wait_for_timeout(600); check("language persisted", pg.get_by_text("हिन्दी").count()>=1)
+    pg.goto(B+"/app/profile/language"); pg.get_by_role("button",name="हिन्दी (Hindi)").click(); pg.wait_for_timeout(200); pg.goto(B+"/app/profile"); check("language persisted", pg.get_by_text("हिन्दी").count()>=1)
     pg.goto(B+"/app/profile/abha"); pg.get_by_role("button",name="Sync now").click(); pg.wait_for_timeout(200); check("abha sync toast", pg.get_by_role("status").count()==1)
     pg.goto(B+"/app/profile/clinics"); pg.get_by_role("button",name="Suggest a clinic").click(); pg.wait_for_timeout(200); check("clinic toast", pg.get_by_role("status").count()==1)
     pg.goto(B+"/app/profile/help"); check("help faqs", pg.locator("details").count()==4)
