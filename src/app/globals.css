@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+/* VitaSync — Calm Clinic tokens (locked, see docs/design-system) */
+@theme {
+  --color-teal: #0E7C66;
+  --color-teal-dark: #0A6857;
+  --color-tint: #EAF3EF;
+  --color-tint-border: #CFE4DB;
+  --color-paper: #F7F5F0;
+  --color-surface: #FFFFFF;
+  --color-line: #E7E2D8;
+  --color-divider: #F0EDE5;
+  --color-ink: #1E2B28;
+  --color-muted: #6B7A75;
+  --color-faint: #9AA6A1;
+  --color-gold: #E8B24A;
+  --color-gold-text: #B58A2E;
+  --color-gold-tint: #FBF3E2;
+  --color-gold-border: #EDDCB4;
+  --color-danger: #C0442E;
+  --color-danger-tint: #FBEAE6;
+
+  --font-display: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Albert Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-card: 18px;
+  --radius-hero: 22px;
+  --radius-pill: 999px;
+  --radius-slot: 10px;
+}
+
+html { background: var(--color-paper); }
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, .display { font-family: var(--font-display); letter-spacing: -0.015em; }
+.mono { font-family: var(--font-mono); }
+
+/* screen frame: mobile-first, centered on desktop */
+.screen {
+  min-height: 100dvh;
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 18px 22px 96px;
+  position: relative;
+}
+.overline {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+:focus-visible { outline: 2px solid var(--color-teal); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+.leaflet-container { font-family: inherit; }
