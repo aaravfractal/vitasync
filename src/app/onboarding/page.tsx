@@ -4,18 +4,28 @@ import { useRouter } from "next/navigation";
 import { ShieldCheck, FileText, CalendarCheck } from "lucide-react";
 import { Logo, Pill } from "@/components/ui";
 import { Field } from "@/components/field";
+import { LanguagePicker, LanguageSwitch } from "@/components/language-picker";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/use-t";
 import type { Key } from "@/lib/i18n";
 
 const bullets: Array<[typeof ShieldCheck, Key]> = [[ShieldCheck, "onb.b1"], [FileText, "onb.b2"], [CalendarCheck, "onb.b3"]];
 
-/** Phone OTP sign-in. Mocked until Supabase auth ships (CLAUDE.md step 1); the code is shown on screen. */
+/**
+ * Phone OTP sign-in. Mocked until Supabase auth ships (CLAUDE.md step 1); the
+ * code is shown on screen.
+ *
+ * Language comes first, before the pitch. A patient who reads Hindi should not
+ * have to parse an English hero line to find the switch that would have given
+ * them Hindi — so the very first screen is two buttons and nothing else, and
+ * every screen after it keeps an EN / हिं switch in the header so the choice is
+ * never a dead end.
+ */
 export default function Onboarding() {
   const router = useRouter();
   const { dispatch } = useStore();
   const { t } = useT();
-  const [stage, setStage] = useState<"intro" | "phone" | "otp">("intro");
+  const [stage, setStage] = useState<"lang" | "intro" | "phone" | "otp">("lang");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
@@ -31,8 +41,17 @@ export default function Onboarding() {
   }
 
   return (
-    <main className="screen flex flex-col items-center text-center px-7 pt-16 pb-8">
-      <Logo size={56} />
+    <main className="screen relative flex flex-col items-center text-center px-7 pt-16 pb-8">
+      {stage === "lang" ? (
+        <div className="w-full max-w-[320px] mt-auto mb-auto">
+          <LanguagePicker brand onPick={() => setStage("intro")} />
+        </div>
+      ) : (
+        <>
+          <LanguageSwitch className="absolute top-5 right-6" />
+          <Logo size={56} />
+        </>
+      )}
       {stage === "intro" && (
         <>
           <h1 className="display text-[30px] font-bold leading-tight mt-6">{t("onb.heroTitle")}</h1>

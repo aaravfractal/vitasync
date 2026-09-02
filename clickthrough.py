@@ -16,8 +16,12 @@ def check(name, cond):
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_page(viewport={"width":390,"height":844})
     if BYPASS: pg.set_extra_http_headers({"x-vs-bypass": BYPASS})
-    # onboarding → otp → app
-    pg.goto(B+"/onboarding"); pg.get_by_role("button",name="Continue with phone number").click()
+    # onboarding → language → otp → app
+    pg.goto(B+"/onboarding")
+    check("language is the first screen", pg.get_by_role("button",name="हिन्दी",exact=True).count()==1 and pg.get_by_role("button",name="Continue with phone number").count()==0)
+    pg.get_by_role("button",name="English",exact=True).click(); pg.wait_for_timeout(200)
+    check("language switch in onboarding header", pg.get_by_role("group",name="Language").count()==1)
+    pg.get_by_role("button",name="Continue with phone number").click()
     pg.get_by_label("Mobile number").fill("9876543210"); pg.get_by_role("button",name="Send code").click()
     pg.get_by_label("6-digit code").fill("482913"); pg.get_by_role("button",name="Continue").click(); pg.wait_for_url("**/app")
     check("onboarding signs in", pg.url.endswith("/app"))
