@@ -263,6 +263,27 @@ with sync_playwright() as p:
     codes=[api.post("/api/chat", data={"messages":[{"role":"user","content":"headache"}]}).status for _ in range(6)]
     check("chat daily cap 429s", codes[5]==429)
     api.dispose()
+    # offline: the emergency strip and /app/emergency must still render with the
+    # network cut. A separate context, so the service worker installs clean.
+    off=b.new_context(viewport={"width":390,"height":844})
+    o=off.new_page()
+    o.goto(B+"/u/k7q2m9x4e1"); o.wait_for_timeout(300)
+    o.wait_for_function("navigator.serviceWorker.controller !== null", timeout=15000)
+    o.goto(B+"/app/emergency"); o.wait_for_timeout(1500)   # let the precache settle
+    off.set_offline(True)
+    o.goto(B+"/u/k7q2m9x4e1"); o.wait_for_timeout(1600)
+    check("offline strip renders", o.get_by_text("Asha Rawat").count()>=1)
+    check("offline blood group", o.get_by_text("B+", exact=True).count()>=1)
+    check("offline ice phone", o.locator("a[href='tel:+919876543210']").count()>=1)
+    check("offline banner, both languages", o.get_by_role("status").count()>=1
+          and "Offline" in o.get_by_role("status").first.inner_text()
+          and "ऑफ़लाइन" in o.get_by_role("status").first.inner_text())
+    check("offline strip stays locked", o.get_by_text("Full record").count()>=1 and o.get_by_text("Consultation").count()==0)
+    o.goto(B+"/app/emergency"); o.wait_for_timeout(1600)
+    body=o.locator("body").inner_text()
+    check("offline emergency has 112 and 108", "112" in body and "108" in body)
+    check("offline hospital list", o.get_by_text("Max Super Speciality").count()>=1)
+    off.set_offline(False); off.close()
     # sign out
     pg.goto(B+"/app/profile"); pg.get_by_role("button",name="Sign out").click(); pg.wait_for_url("**/onboarding"); check("sign out", True)
     b.close()

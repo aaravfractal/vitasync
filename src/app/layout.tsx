@@ -3,6 +3,7 @@ import "./globals.css";
 import { StoreProvider } from "@/lib/store";
 import { ToastProvider } from "@/components/toast";
 import { HtmlAttrs } from "@/components/html-attrs";
+import { ServiceWorker } from "@/components/offline";
 
 export const metadata: Metadata = {
   title: "VitaSync — Your whole health record, in one place",
@@ -23,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full"><StoreProvider><HtmlAttrs /><ToastProvider>{children}</ToastProvider></StoreProvider></body>
+      <body className="min-h-full"><StoreProvider><HtmlAttrs /><ServiceWorker /><ToastProvider>{children}</ToastProvider></StoreProvider></body>
     </html>
   );
 }

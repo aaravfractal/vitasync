@@ -5,6 +5,7 @@ import { Logo } from "@/components/ui";
 import { patient, records } from "@/lib/demo-data";
 import { translate } from "@/lib/i18n";
 import { sessionValid } from "@/lib/share";
+import { OfflineBanner } from "@/components/offline";
 import { FullRecordGate } from "./gate";
 import { FullRecordPanel, ShareFooter } from "./panel";
 
@@ -41,6 +42,8 @@ export default async function PublicId({ params }: { params: Promise<{ token: st
         <Logo size={36} /><span className="display font-bold text-[17px]">VitaSync</span>
         <span className="ml-auto text-[12px] text-faint text-right">{translate("en", "u.kicker")}<span className="block">{translate("hi", "u.kicker")}</span></span>
       </div>
+
+      <OfflineBanner bi />
 
       <section className="bg-surface border border-line rounded-[22px] overflow-hidden">
         <div className="bg-danger-tint text-danger px-4 py-2 font-bold text-[13px] tracking-wide">

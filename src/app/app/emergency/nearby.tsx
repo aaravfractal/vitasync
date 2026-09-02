@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Navigation, Phone, ShieldCheck } from "lucide-react";
 import { ScreenHeader, cx } from "@/components/ui";
+import { OfflineBanner } from "@/components/offline";
 import { useT } from "@/lib/use-t";
 import { hospitals as curated } from "@/lib/demo-data";
 import { FALLBACK_CENTER, locate, mergeHospitals, nearbyHospitals, type Coords } from "@/lib/geo";
@@ -66,6 +67,7 @@ export function EmergencyNearby({ actions, footer }: { actions: ReactNode; foote
           </span>
         }
       />
+      <OfflineBanner />
       <EmergencyMap center={center} hospitals={list} onSelect={onSelect} />
 
       <div className="mt-4 bg-surface border border-line rounded-[24px] p-4">
