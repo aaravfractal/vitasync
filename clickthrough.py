@@ -194,6 +194,29 @@ with sync_playwright() as p:
     check("ai prefilled", len(pg.get_by_label("Describe how you feel").input_value())>10)
     pg.goto(B+"/app/record"); pg.wait_for_timeout(700)
     check("activity summary in record", pg.get_by_text("Activity summary —").count()>=1)
+    # AI replies follow the patient's own words, not the app's language setting.
+    lang_api=p.request.new_context(base_url=B, extra_http_headers=({"x-vs-bypass":BYPASS} if BYPASS else {}))
+    def ask(text, hint, turns=1):
+        msgs=[{"role":"user","content":"x"},{"role":"assistant","content":"y"}]*(turns-1)+[{"role":"user","content":text}]
+        return lang_api.post("/api/chat", data={"messages":msgs,"lang":hint}).json()
+    dev=re.compile(r"[ऀ-ॿ]")
+    r=ask("सुबह से सिर दर्द है", "en")
+    check("devanagari message gets a hindi reply", bool(dev.search(r["reply"])))
+    r=ask("subah se sir dard hai", "en")
+    check("hinglish message gets a hindi reply", bool(dev.search(r["reply"])))
+    r=ask("headache since morning", "hi")
+    check("english message wins over a hindi hint", not dev.search(r["reply"]))
+    r=ask("ok", "hi")
+    check("hint decides when the message has no signal", bool(dev.search(r["reply"])))
+    r=ask("छाती में दर्द और साँस फूल रही है", "hi")
+    check("hindi red flag routes to emergency", r["urgency"]=="emergency")
+    check("112 and 108 stay latin in hindi", "112" in r["reply"] and "108" in r["reply"] and not dev.search("112"))
+    r=ask("दो दिन से बुख़ार है", "hi", turns=2)
+    check("hindi next_step is in hindi", bool(dev.search(r["next_step"]["title"])) and bool(dev.search(r["advice"])))
+    check("json shape is unchanged", set(r)>= {"reply","question","urgency","next_step","likely_cause","advice"})
+    bad=lang_api.post("/api/chat", data={"lang":"hi"})
+    check("chat validates its input", bad.status==400 and bad.json()["ok"] is False)
+    lang_api.dispose()
     # chat daily cap, with no bypass header: the 6th request must be refused
     api=p.request.new_context(base_url=B)
     codes=[api.post("/api/chat", data={"messages":[{"role":"user","content":"headache"}]}).status for _ in range(6)]
