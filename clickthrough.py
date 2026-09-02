@@ -86,7 +86,16 @@ with sync_playwright() as p:
     check("family added", pg.get_by_text("Meera Rawat").count()>=1)
     pg.get_by_role("button",name="Make caregiver").first.click(); pg.wait_for_timeout(200); check("caregiver toggle", pg.get_by_text("receives approval codes").count()>=2)
     # language, abha, clinics, help
-    pg.goto(B+"/app/profile/language"); pg.get_by_role("button",name="हिन्दी (Hindi)").click(); pg.wait_for_timeout(200); pg.goto(B+"/app/profile"); check("language persisted", pg.get_by_text("हिन्दी").count()>=1)
+    # language: switch to Hindi, prove the UI really renders in it, then switch back
+    # so every later assertion below reads the English strings it expects.
+    pg.goto(B+"/app/profile/language"); pg.get_by_role("button",name="हिन्दी (Hindi)").click(); pg.wait_for_timeout(200)
+    pg.goto(B+"/app/profile"); check("language persisted", pg.get_by_text("हिन्दी").count()>=1)
+    pg.goto(B+"/app"); pg.wait_for_timeout(400)
+    check("home renders in hindi", pg.get_by_text("तबीयत ठीक नहीं लग रही?").count()==1 and pg.get_by_role("link",name="लक्षण जाँचें").count()==1)
+    pg.goto(B+"/app/symptom"); pg.wait_for_timeout(400)
+    dis=pg.get_by_text("112").first.inner_text()
+    check("112 and 108 survive translation", "112" in dis and "108" in dis)
+    pg.goto(B+"/app/profile/language"); pg.get_by_role("button",name="English").click(); pg.wait_for_timeout(200)
     pg.goto(B+"/app/profile/abha"); pg.get_by_role("button",name="Sync now").click(); pg.wait_for_timeout(200); check("abha sync toast", pg.get_by_role("status").count()==1)
     pg.goto(B+"/app/profile/clinics"); pg.get_by_role("button",name="Suggest a clinic").click(); pg.wait_for_timeout(200); check("clinic toast", pg.get_by_role("status").count()==1)
     pg.goto(B+"/app/profile/help"); check("help faqs", pg.locator("details").count()==4)

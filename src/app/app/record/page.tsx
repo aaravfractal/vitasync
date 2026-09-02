@@ -8,29 +8,30 @@ import { useToast } from "@/components/toast";
 import { AttachmentView } from "@/components/attachment-view";
 import { UploadReportCard, UploadReportSheet } from "@/components/upload-report";
 import { useStore } from "@/lib/store";
+import { useT } from "@/lib/use-t";
 import { ciphertextHash, decryptToBlob } from "@/lib/attachments";
 import { canonicalRecord, sha256Hex, shortHash } from "@/lib/hash";
+import type { Key } from "@/lib/i18n";
 import type { HealthRecord, RecordType } from "@/lib/types";
 
-const filters: Array<{ key: "all" | RecordType; label: string }> = [
-  { key: "all", label: "All" }, { key: "consult", label: "Consults" }, { key: "report", label: "Reports" }, { key: "rx", label: "Rx" },
+const filters: Array<{ key: "all" | RecordType; label: Key }> = [
+  { key: "all", label: "rec.all" }, { key: "consult", label: "rec.consults" }, { key: "report", label: "rec.reports" }, { key: "rx", label: "rec.rx" },
 ];
-const monthOf = (iso: string) => new Date(iso).toLocaleString("en-IN", { month: "long", year: "numeric" }).toUpperCase();
-const dayOf = (iso: string) => new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short" });
 
 const cardClass = "block w-full text-left bg-surface border border-line rounded-[18px] p-4";
-const actionLabel = (t: RecordType) => (t === "report" ? "View / Share" : t === "rx" ? "Refill" : t === "ai_session" ? "View report" : "Open");
+const actionKey = (type: RecordType): Key => (type === "report" ? "rec.actionViewShare" : type === "rx" ? "rec.actionRefill" : type === "ai_session" ? "rec.actionReport" : "rec.actionOpen");
 
 /** AI sessions open their own report screen; everything else opens the detail sheet. */
 function RecordCard({ r, onOpen }: { r: HealthRecord; onOpen: () => void }) {
+  const { t, d } = useT();
   const body = (
     <>
-      <div className="flex justify-between gap-3"><div className="font-semibold text-[14.5px]">{r.title}</div><div className="text-[12px] text-faint shrink-0">{dayOf(r.occurredAt)}</div></div>
+      <div className="flex justify-between gap-3"><div className="font-semibold text-[14.5px]">{r.title}</div><div className="text-[12px] text-faint shrink-0">{d(r.occurredAt, { day: "numeric", month: "short" })}</div></div>
       <div className="text-[12px] text-muted">{r.provider}</div>
       <p className="text-[13.5px] mt-2">{r.summary}</p>
       <div className="border-t border-divider mt-3 pt-2.5 flex items-center justify-between text-[12.5px]">
-        <span className={cx("font-medium", r.sha256 ? "text-teal" : "text-faint")}>{r.sha256 ? "Sealed · owned by you" : "Sealing…"}</span>
-        <span className="text-teal font-semibold">{actionLabel(r.type)}</span>
+        <span className={cx("font-medium", r.sha256 ? "text-teal" : "text-faint")}>{r.sha256 ? t("rec.sealed") : t("rec.sealing")}</span>
+        <span className="text-teal font-semibold">{t(actionKey(r.type))}</span>
       </div>
     </>
   );
@@ -41,10 +42,13 @@ function RecordCard({ r, onOpen }: { r: HealthRecord; onOpen: () => void }) {
 export default function Record() {
   const { state, dispatch } = useStore();
   const toast = useToast();
+  const { t, d, locale } = useT();
   const [filter, setFilter] = useState<"all" | RecordType>("all");
   const [openRec, setOpenRec] = useState<HealthRecord | null>(null);
   const [verify, setVerify] = useState<"idle" | "ok" | "bad">("idle");
   const [upload, setUpload] = useState(false);
+
+  const monthOf = (iso: string) => d(iso, { month: "long", year: "numeric" }).toUpperCase();
 
   // Seal any unsealed entries (seed data). In production hashing happens on write, server-side.
   useEffect(() => {
@@ -63,23 +67,24 @@ export default function Record() {
     const url = URL.createObjectURL(await decryptToBlob(r.attachment));
     const a = document.createElement("a"); a.href = url; a.download = r.attachment.name; a.click();
     URL.revokeObjectURL(url);
-    toast("Decrypted on this device and saved");
+    toast(t("rec.decrypted"));
   }
   function sharePdf(r: HealthRecord) {
-    const text = `${r.title}\n${r.provider}\n${new Date(r.occurredAt).toLocaleString("en-IN")}\n\n${r.summary}\n\nSHA-256: ${r.sha256}`;
+    const text = `${r.title}\n${r.provider}\n${new Date(r.occurredAt).toLocaleString(locale)}\n\n${r.summary}\n\nSHA-256: ${r.sha256}`;
     const blob = new Blob([text], { type: "text/plain" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${r.title.replace(/\W+/g, "-")}.txt`; a.click();
-    toast("Downloaded. PDF export arrives with real uploads.");
+    toast(t("rec.downloadedTxt"));
   }
 
   return (
     <>
       <ScreenHeader
-        title="Health record"
-        subtitle={`${state.records.length} entries · sealed`}
-        right={<Link href="/app/reports" className="inline-flex items-center gap-1.5 rounded-full bg-tint border border-tint-border text-teal px-3.5 min-h-[36px] text-[13px] font-semibold shrink-0"><Sparkles size={14} /> Reports summary</Link>}
+        title={t("rec.title")}
+        backLabel={t("common.back")}
+        subtitle={t("rec.sub", { n: state.records.length })}
+        right={<Link href="/app/reports" className="inline-flex items-center gap-1.5 rounded-full bg-tint border border-tint-border text-teal px-3.5 min-h-[36px] text-[13px] font-semibold shrink-0"><Sparkles size={14} /> {t("rec.reportsSummary")}</Link>}
       />
-      <div className="flex gap-2 mb-3">{filters.map((f) => <Chip key={f.key} active={filter === f.key} onClick={() => setFilter(f.key)}>{f.label}</Chip>)}</div>
+      <div className="flex gap-2 mb-3">{filters.map((f) => <Chip key={f.key} active={filter === f.key} onClick={() => setFilter(f.key)}>{t(f.label)}</Chip>)}</div>
 
       <UploadReportCard onClick={() => setUpload(true)} className="mb-4" />
 
@@ -97,27 +102,27 @@ export default function Record() {
           );
         })}
       </ol>
-      {shown.length === 0 && <p className="text-muted text-[14px]">Nothing here yet. Entries appear as you book, log vitals and upload reports.</p>}
+      {shown.length === 0 && <p className="text-muted text-[14px]">{t("rec.empty")}</p>}
 
-      <div className="fixed bottom-[76px] inset-x-0 px-[22px] max-w-[430px] mx-auto"><Pill href="/app/id" className="w-full">Share record with a doctor</Pill></div>
+      <div className="fixed bottom-[76px] inset-x-0 px-[22px] max-w-[430px] mx-auto"><Pill href="/app/id" className="w-full">{t("rec.shareWithDoctor")}</Pill></div>
 
       <Sheet open={!!openRec} onClose={() => setOpenRec(null)} title={openRec?.title}>
         {openRec && (
           <>
-            <div className="text-[13px] text-muted">{openRec.provider} · {new Date(openRec.occurredAt).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+            <div className="text-[13px] text-muted">{openRec.provider} · {d(openRec.occurredAt, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
             <p className="text-[14.5px] mt-3">{openRec.summary}</p>
             {openRec.attachment && <AttachmentView attachment={openRec.attachment} />}
             <div className="mt-4 bg-paper border border-line rounded-[14px] p-3 text-[12.5px]">
-              <div className="text-muted">{openRec.attachment ? "SHA-256 of the encrypted file" : "SHA-256"}</div>
-              <div className="mono break-all">{openRec.sha256 ?? "pending"}</div>
-              <button onClick={() => reverify(openRec)} className="text-teal font-semibold mt-2">Verify now</button>
-              {verify === "ok" && <span className="ml-3 text-teal">Matches · untampered</span>}
-              {verify === "bad" && <span className="ml-3 text-danger">Mismatch · altered</span>}
-              <div className="text-faint mt-1">{shortHash(openRec.sha256)} · anchoring on Polygon testnet next</div>
+              <div className="text-muted">{openRec.attachment ? t("rec.shaEncrypted") : t("rec.sha")}</div>
+              <div className="mono break-all">{openRec.sha256 ?? t("rec.pending")}</div>
+              <button onClick={() => reverify(openRec)} className="text-teal font-semibold mt-2">{t("common.verifyNow")}</button>
+              {verify === "ok" && <span className="ml-3 text-teal">{t("common.hashMatches")}</span>}
+              {verify === "bad" && <span className="ml-3 text-danger">{t("common.hashMismatch")}</span>}
+              <div className="text-faint mt-1">{shortHash(openRec.sha256)} · {t("rec.anchorNext")}</div>
             </div>
             <div className="flex gap-2 mt-4">
-              {openRec.type === "rx" ? <Pill href="/app/refills" className="flex-1">Refill now</Pill> : <Pill onClick={() => download(openRec)} className="flex-1">Download</Pill>}
-              <Pill href="/app/id" variant="secondary" className="flex-1">Share</Pill>
+              {openRec.type === "rx" ? <Pill href="/app/refills" className="flex-1">{t("rec.refillNow")}</Pill> : <Pill onClick={() => download(openRec)} className="flex-1">{t("common.download")}</Pill>}
+              <Pill href="/app/id" variant="secondary" className="flex-1">{t("common.share")}</Pill>
             </div>
           </>
         )}

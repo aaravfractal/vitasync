@@ -79,12 +79,12 @@ export function Overline({ children, tone = "teal" }: { children: ReactNode; ton
   return <div className={cx("overline", c)}>{children}</div>;
 }
 
-export function ScreenHeader({ title, back = "/app", right, subtitle }: { title: ReactNode; back?: string | null; right?: ReactNode; subtitle?: ReactNode }) {
+export function ScreenHeader({ title, back = "/app", right, subtitle, backLabel = "Back" }: { title: ReactNode; back?: string | null; right?: ReactNode; subtitle?: ReactNode; backLabel?: string }) {
   return (
     <header className="flex items-start justify-between gap-3 mb-4">
       <div className="flex items-start gap-2 min-w-0">
         {back && (
-          <Link href={back} aria-label="Back" className="inline-flex items-center justify-center w-11 h-11 -ml-2 rounded-full hover:bg-tint text-ink">
+          <Link href={back} aria-label={backLabel} className="inline-flex items-center justify-center w-11 h-11 -ml-2 rounded-full hover:bg-tint text-ink">
             <ChevronLeft size={22} strokeWidth={1.8} />
           </Link>
         )}
