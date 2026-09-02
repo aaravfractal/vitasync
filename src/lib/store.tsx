@@ -11,6 +11,14 @@ export interface Grant { id: string; grantee: string; scope: string; since: stri
 export interface LogEntry { id: string; actor: string; action: string; at: string }
 export interface Family { id: string; name: string; relation: string; otpTarget: boolean; phone?: string }
 export interface Reminder { id: string; text: string; at: string }
+/**
+ * One person signed up at a health camp. Lives only on the worker's device
+ * until step 1 ships a server — see the note on `campRegistrations` in State.
+ */
+export interface CampRegistration {
+  id: string; vsId: string; token: string; name: string; phone: string;
+  age: string; sex: string; bloodGroup: string; allergies: string[]; area: string; at: string;
+}
 
 export interface State {
   signedIn: boolean;
@@ -27,6 +35,12 @@ export interface State {
   language: "en" | "hi";
   /** Bigger type, a four-card home, a three-item nav, and replies read aloud. */
   elderMode: boolean;
+  /**
+   * Health-camp sign-ups. These are other people's records held on the worker's
+   * phone, not the account holder's, so signing out does not clear them —
+   * a camp is often run from a shared device.
+   */
+  campRegistrations: CampRegistration[];
   clinics: string[];
   device: ConnectedDevice | null;
   targets: WellnessTargets;
@@ -54,6 +68,7 @@ const initial: State = {
   reminders: [],
   language: "en",
   elderMode: false,
+  campRegistrations: [],
   clinics: ["Doon Clinic", "Dr Lal PathLabs", "SRL Diagnostics"],
   device: null,
   targets: { steps: 8000, calories: 400, activeMinutes: 45, water: 8 },
@@ -76,6 +91,7 @@ type Action =
   | { type: "addFamily"; member: Family }
   | { type: "setLanguage"; language: "en" | "hi" }
   | { type: "setElderMode"; on: boolean }
+  | { type: "addCampRegistration"; reg: CampRegistration }
   | { type: "addReminder"; reminder: Reminder }
   | { type: "removeReminder"; id: string }
   | { type: "connectDevice"; device: ConnectedDevice; day: WellnessDay }
@@ -93,7 +109,7 @@ function reducer(s: State, a: Action): State {
   switch (a.type) {
     case "hydrate": return a.state;
     case "signIn": return { ...s, signedIn: true };
-    case "signOut": return { ...initial, signedIn: false };
+    case "signOut": return { ...initial, signedIn: false, campRegistrations: s.campRegistrations };
     case "reset": return initial;
     case "addRecord": return { ...s, records: [a.record, ...s.records] };
     case "sealRecord": return { ...s, records: s.records.map((r) => (r.id === a.id ? { ...r, sha256: a.sha256, sealedAt: new Date().toISOString() } : r)) };
@@ -107,6 +123,7 @@ function reducer(s: State, a: Action): State {
     case "addFamily": return { ...s, family: [...s.family, a.member] };
     case "setLanguage": return { ...s, language: a.language };
     case "setElderMode": return { ...s, elderMode: a.on };
+    case "addCampRegistration": return { ...s, campRegistrations: [a.reg, ...s.campRegistrations] };
     case "addReminder": return { ...s, reminders: [a.reminder, ...s.reminders] };
     case "removeReminder": return { ...s, reminders: s.reminders.filter((r) => r.id !== a.id) };
     case "connectDevice": return { ...s, device: a.device, wellness: a.day };

@@ -1,6 +1,8 @@
-import type { InputHTMLAttributes, SelectHTMLAttributes } from "react";
+// React 19 passes `ref` as an ordinary prop, so ComponentPropsWithRef is all
+// that is needed for a caller to chain focus from one field to the next.
+import type { ComponentPropsWithRef, SelectHTMLAttributes } from "react";
 
-export function Field({ label, ...p }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+export function Field({ label, ...p }: ComponentPropsWithRef<"input"> & { label: string }) {
   return (
     <label className="block mb-3">
       <span className="block text-[12.5px] text-muted mb-1">{label}</span>

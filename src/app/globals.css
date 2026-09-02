@@ -191,3 +191,22 @@ html.elder nav[aria-label="Primary"] a { min-height: 64px; }
   html.elder .deck-frame { height: calc(100dvh / var(--elder-zoom) - 96px); }
   html.elder .deck-frame .screen { min-height: 100%; }
 }
+
+/* ---- Health-camp print slip (A6) -------------------------------------------
+   A worker at a camp table prints one of these per person and hands it over.
+   Only `.camp-slip` survives; everything else on the page is chrome. */
+@media print {
+  @page { size: A6; margin: 8mm; }
+  body { background: #fff; }
+  body * { visibility: hidden; }
+  .camp-slip, .camp-slip * { visibility: visible; }
+  .camp-slip {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+  }
+  .no-print { display: none !important; }
+}

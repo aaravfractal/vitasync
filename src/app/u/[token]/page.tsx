@@ -6,6 +6,7 @@ import { patient, records } from "@/lib/demo-data";
 import { translate } from "@/lib/i18n";
 import { sessionValid } from "@/lib/share";
 import { OfflineBanner } from "@/components/offline";
+import { CampId } from "./camp";
 import { FullRecordGate } from "./gate";
 import { FullRecordPanel, ShareFooter } from "./panel";
 
@@ -32,7 +33,13 @@ function Bi({ k }: { k: "u.bloodGroup" | "u.allergies" | "u.emergencyMeds" | "u.
 
 export default async function PublicId({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  if (token !== patient.shareToken) notFound();
+  // A camp token is not on the server — it was minted on a worker's phone and
+  // lives in that device's store until step 1. Hand it to the client resolver
+  // rather than 404ing; it enforces the same two-tier rules.
+  if (token !== patient.shareToken) {
+    if (!/^[a-z0-9]{6,32}$/.test(token)) notFound();
+    return <CampId token={token} />;
+  }
   const jar = await cookies();
   const unlocked = sessionValid(jar.get(`vs_share_${token}`)?.value, token);
 

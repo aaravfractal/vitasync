@@ -13,7 +13,12 @@ export const runtime = "nodejs";
  */
 export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
-  if (token !== patient.shareToken) return NextResponse.json({ ok: false, error: "Unknown ID" }, { status: 404 });
+  // Camp tokens are minted on a worker's device and never reach this server, so
+  // "is this a real ID" cannot be answered here until step 1. Shape is checked
+  // instead; the gate itself is unchanged — the challenge is still HMAC-signed
+  // per token, still rate-limited, still logged, and still needs the code.
+  if (token !== patient.shareToken && !/^[a-z0-9]{6,32}$/.test(token))
+    return NextResponse.json({ ok: false, error: "Unknown ID" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
   const jar = await cookies();

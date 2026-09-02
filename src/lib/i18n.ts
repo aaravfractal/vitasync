@@ -366,6 +366,35 @@ export const en = {
   "u.code": "6-digit code",
   "u.open": "Open record",
   "u.foot": "Full record opens only with a one-time code sent to the patient's or caregiver's phone. Every access is logged and visible to the patient. Link expires in 24 hours.",
+
+  // ---- camp mode (/camp) -----------------------------------------------
+  "camp.title": "Health camp",
+  "camp.badge": "Health-camp mode · pilot demo",
+  "camp.intro": "Register a patient. They get an emergency ID they can carry.",
+  "camp.registeredToday": "{n} registered today",
+  "camp.name": "Full name",
+  "camp.mobile": "Mobile number",
+  "camp.age": "Age",
+  "camp.sex": "Sex",
+  "camp.sexF": "Female",
+  "camp.sexM": "Male",
+  "camp.sexO": "Other",
+  "camp.bloodGroup": "Blood group",
+  "camp.bloodUnknown": "Not known",
+  "camp.allergies": "Allergies",
+  "camp.allergyOther": "Anything else? (optional)",
+  "camp.area": "Village or area",
+  "camp.submit": "Register",
+  "camp.badName": "Enter the patient's name.",
+  "camp.badPhone": "Enter a 10-digit mobile number.",
+  "camp.done": "Registered",
+  "camp.slipId": "VitaSync ID",
+  "camp.scanNote": "Scan this for the emergency strip. No code needed.",
+  "camp.print": "Print slip",
+  "camp.another": "Register the next person",
+  "camp.slipLine": "VitaSync · Emergency ID · no OTP needed for this strip",
+  "camp.noAllergies": "None recorded",
+  "camp.notOnDevice": "This ID was registered at a camp on another device, so it cannot be opened here. Open it on that device, or ask the patient to sign in to the app.",
 } as const;
 
 export type Key = keyof typeof en;
@@ -724,6 +753,35 @@ export const hi: Record<Key, string> = {
   "u.code": "6 अंकों का कोड", // REVIEW
   "u.open": "रिकॉर्ड खोलें", // REVIEW
   "u.foot": "पूरा रिकॉर्ड सिर्फ़ उस एक बार के कोड से खुलता है जो मरीज़ या देखभालकर्ता के फ़ोन पर जाता है। हर बार खोलना दर्ज होता है और मरीज़ को दिखता है। लिंक 24 घंटे में ख़त्म हो जाता है।", // REVIEW
+
+  // ---- camp mode (/camp) -----------------------------------------------
+  "camp.title": "स्वास्थ्य शिविर", // REVIEW
+  "camp.badge": "स्वास्थ्य शिविर मोड · परीक्षण डेमो", // REVIEW
+  "camp.intro": "मरीज़ को दर्ज कीजिए। उन्हें एक आपातकालीन ID मिलेगी जो वे साथ रख सकते हैं।", // REVIEW
+  "camp.registeredToday": "आज {n} दर्ज हुए", // REVIEW
+  "camp.name": "पूरा नाम", // REVIEW
+  "camp.mobile": "मोबाइल नंबर", // REVIEW
+  "camp.age": "उम्र", // REVIEW
+  "camp.sex": "लिंग", // REVIEW
+  "camp.sexF": "महिला", // REVIEW
+  "camp.sexM": "पुरुष", // REVIEW
+  "camp.sexO": "अन्य", // REVIEW
+  "camp.bloodGroup": "ब्लड ग्रुप", // REVIEW
+  "camp.bloodUnknown": "पता नहीं", // REVIEW
+  "camp.allergies": "एलर्जी", // REVIEW
+  "camp.allergyOther": "कुछ और? (ज़रूरी नहीं)", // REVIEW
+  "camp.area": "गाँव या इलाका", // REVIEW
+  "camp.submit": "दर्ज कीजिए", // REVIEW
+  "camp.badName": "मरीज़ का नाम लिखिए।", // REVIEW
+  "camp.badPhone": "10 अंकों का मोबाइल नंबर डालिए।", // REVIEW
+  "camp.done": "दर्ज हो गया", // REVIEW
+  "camp.slipId": "VitaSync ID", // REVIEW — the product name is never translated
+  "camp.scanNote": "आपातकालीन जानकारी के लिए इसे स्कैन कीजिए। कोई कोड नहीं चाहिए।", // REVIEW
+  "camp.print": "पर्ची छापिए", // REVIEW
+  "camp.another": "अगले व्यक्ति को दर्ज कीजिए", // REVIEW
+  "camp.slipLine": "VitaSync · आपातकालीन ID · इस पर्ची के लिए कोई OTP नहीं चाहिए", // REVIEW — VitaSync, ID and OTP stay as they are
+  "camp.noAllergies": "कोई दर्ज नहीं", // REVIEW
+  "camp.notOnDevice": "यह ID किसी दूसरे डिवाइस पर शिविर में दर्ज हुई थी, इसलिए यहाँ नहीं खुलेगी। उसी डिवाइस पर खोलिए, या मरीज़ से ऐप में साइन इन करने के लिए कहिए।", // REVIEW
 };
 
 const DICT: Record<Lang, Record<Key, string>> = { en, hi };

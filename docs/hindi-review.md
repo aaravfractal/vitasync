@@ -16,7 +16,7 @@ Rules the translation must keep:
 - `{braces}` are placeholders filled at runtime. Keep them exactly, spelling
   included; the words around them may be reordered freely.
 
-313 strings. Regenerate with `node scripts/gen-hindi-review.mjs`.
+340 strings. Regenerate with `node scripts/gen-hindi-review.mjs`.
 
 | Key | English | हिन्दी (draft) |
 | --- | --- | --- |
@@ -333,3 +333,30 @@ Rules the translation must keep:
 | `u.code` | 6-digit code | 6 अंकों का कोड |
 | `u.open` | Open record | रिकॉर्ड खोलें |
 | `u.foot` | Full record opens only with a one-time code sent to the patient's or caregiver's phone. Every access is logged and visible to the patient. Link expires in 24 hours. | पूरा रिकॉर्ड सिर्फ़ उस एक बार के कोड से खुलता है जो मरीज़ या देखभालकर्ता के फ़ोन पर जाता है। हर बार खोलना दर्ज होता है और मरीज़ को दिखता है। लिंक 24 घंटे में ख़त्म हो जाता है। |
+| `camp.title` | Health camp | स्वास्थ्य शिविर |
+| `camp.badge` | Health-camp mode · pilot demo | स्वास्थ्य शिविर मोड · परीक्षण डेमो |
+| `camp.intro` | Register a patient. They get an emergency ID they can carry. | मरीज़ को दर्ज कीजिए। उन्हें एक आपातकालीन ID मिलेगी जो वे साथ रख सकते हैं। |
+| `camp.registeredToday` | {n} registered today | आज {n} दर्ज हुए |
+| `camp.name` | Full name | पूरा नाम |
+| `camp.mobile` | Mobile number | मोबाइल नंबर |
+| `camp.age` | Age | उम्र |
+| `camp.sex` | Sex | लिंग |
+| `camp.sexF` | Female | महिला |
+| `camp.sexM` | Male | पुरुष |
+| `camp.sexO` | Other | अन्य |
+| `camp.bloodGroup` | Blood group | ब्लड ग्रुप |
+| `camp.bloodUnknown` | Not known | पता नहीं |
+| `camp.allergies` | Allergies | एलर्जी |
+| `camp.allergyOther` | Anything else? (optional) | कुछ और? (ज़रूरी नहीं) |
+| `camp.area` | Village or area | गाँव या इलाका |
+| `camp.submit` | Register | दर्ज कीजिए |
+| `camp.badName` | Enter the patient's name. | मरीज़ का नाम लिखिए। |
+| `camp.badPhone` | Enter a 10-digit mobile number. | 10 अंकों का मोबाइल नंबर डालिए। |
+| `camp.done` | Registered | दर्ज हो गया |
+| `camp.slipId` | VitaSync ID | VitaSync ID |
+| `camp.scanNote` | Scan this for the emergency strip. No code needed. | आपातकालीन जानकारी के लिए इसे स्कैन कीजिए। कोई कोड नहीं चाहिए। |
+| `camp.print` | Print slip | पर्ची छापिए |
+| `camp.another` | Register the next person | अगले व्यक्ति को दर्ज कीजिए |
+| `camp.slipLine` | VitaSync · Emergency ID · no OTP needed for this strip | VitaSync · आपातकालीन ID · इस पर्ची के लिए कोई OTP नहीं चाहिए |
+| `camp.noAllergies` | None recorded | कोई दर्ज नहीं |
+| `camp.notOnDevice` | This ID was registered at a camp on another device, so it cannot be opened here. Open it on that device, or ask the patient to sign in to the app. | यह ID किसी दूसरे डिवाइस पर शिविर में दर्ज हुई थी, इसलिए यहाँ नहीं खुलेगी। उसी डिवाइस पर खोलिए, या मरीज़ से ऐप में साइन इन करने के लिए कहिए। |
