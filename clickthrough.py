@@ -9,13 +9,36 @@ from playwright.sync_api import sync_playwright
 B="http://127.0.0.1:3111"
 PDF=b"%PDF-1.4 minimal bytes, enough to prove the encryption path"
 BYPASS=os.environ.get("RATE_LIMIT_BYPASS_TOKEN","")
+# A SpeechRecognition that never touches a speech service: `start` publishes the
+# language it was given and a `__fire` hook to push transcripts through onresult.
+STUB="""
+class R {
+  constructor(){ this.lang=''; this.continuous=false; this.interimResults=false;
+                 this.onresult=null; this.onerror=null; this.onend=null; }
+  start(){ window.__recLang=this.lang; const self=this;
+           window.__fire=(t,f)=>{ self.onresult && self.onresult(
+             {resultIndex:0, results:{length:1, 0:{isFinal:f, length:1, 0:{transcript:t}}}}); }; }
+  stop(){ this.onend && this.onend(); }
+  abort(){}
+}
+window.webkitSpeechRecognition = R; delete window.SpeechRecognition;
+"""
+NOSPEECH="""
+delete window.SpeechRecognition; delete window.webkitSpeechRecognition;
+try { Object.defineProperty(window,'speechSynthesis',{get(){return undefined}}); } catch(e) {}
+delete window.speechSynthesis;
+"""
 fails=[]
 def check(name, cond):
     print(("PASS " if cond else "FAIL ")+name); 
     if not cond: fails.append(name)
 with sync_playwright() as p:
-    b=p.chromium.launch(); pg=b.new_page(viewport={"width":390,"height":844})
-    if BYPASS: pg.set_extra_http_headers({"x-vs-bypass": BYPASS})
+    b=p.chromium.launch()
+    # An explicit context, so the voice tests below can open extra pages that
+    # share this one's localStorage (and so its signed-in store).
+    ctx=b.new_context(viewport={"width":390,"height":844})
+    if BYPASS: ctx.set_extra_http_headers({"x-vs-bypass": BYPASS})
+    pg=ctx.new_page()
     # onboarding → language → otp → app
     pg.goto(B+"/onboarding")
     check("language is the first screen", pg.get_by_role("button",name="हिन्दी",exact=True).count()==1 and pg.get_by_role("button",name="Continue with phone number").count()==0)
@@ -99,7 +122,36 @@ with sync_playwright() as p:
     pg.goto(B+"/app/symptom"); pg.wait_for_timeout(400)
     dis=pg.get_by_text("112").first.inner_text()
     check("112 and 108 survive translation", "112" in dis and "108" in dis)
+    # voice: the mic follows the UI language, so check it while Hindi is still on.
+    # Chromium ships a webkitSpeechRecognition that needs a live speech service, so
+    # both the present and absent cases are stubbed here rather than left to chance.
+    hi_pg=ctx.new_page(); hi_pg.add_init_script(STUB); hi_pg.goto(B+"/app/symptom"); hi_pg.wait_for_timeout(400)
+    hi_pg.get_by_role("button",name="बोलकर बताएँ").click(); hi_pg.wait_for_timeout(200)
+    check("mic uses hi-IN in hindi", hi_pg.evaluate("window.__recLang")=="hi-IN")
+    check("listening banner translated", hi_pg.get_by_text("सुन रहे हैं… सामान्य रूप से बोलिए").count()==1)
+    hi_pg.close()
     pg.goto(B+"/app/profile/language"); pg.get_by_role("button",name="English").click(); pg.wait_for_timeout(200)
+    # voice, English: dictation lands in the input and is NOT sent on its own.
+    v_pg=ctx.new_page(); v_pg.add_init_script(STUB); v_pg.goto(B+"/app/symptom"); v_pg.wait_for_timeout(400)
+    check("mic shown when supported", v_pg.get_by_role("button",name="Speak").count()==1)
+    v_pg.get_by_role("button",name="Speak").click(); v_pg.wait_for_timeout(200)
+    check("mic uses en-IN in english", v_pg.evaluate("window.__recLang")=="en-IN")
+    check("listening banner", v_pg.get_by_text("Listening… speak normally").count()==1)
+    v_pg.evaluate("window.__fire('headache since', false)"); v_pg.wait_for_timeout(150)
+    check("interim text in input", v_pg.get_by_label("Describe how you feel").input_value()=="headache since")
+    v_pg.evaluate("window.__fire('headache since morning', true)"); v_pg.wait_for_timeout(150)
+    check("final text in input", v_pg.get_by_label("Describe how you feel").input_value()=="headache since morning")
+    check("speech is not auto-sent", v_pg.locator("div.bg-teal.text-white").count()==0)
+    v_pg.get_by_label("Describe how you feel").fill("headache since morning, mild")
+    check("dictation stays editable", v_pg.get_by_label("Describe how you feel").input_value()=="headache since morning, mild")
+    v_pg.get_by_role("button",name="Stop listening").click(); v_pg.wait_for_timeout(150)
+    check("listening banner clears", v_pg.get_by_text("Listening… speak normally").count()==0)
+    v_pg.close()
+    # no Web Speech API: the mic is absent, not a dead button.
+    n_pg=ctx.new_page(); n_pg.add_init_script(NOSPEECH); n_pg.goto(B+"/app/symptom"); n_pg.wait_for_timeout(400)
+    check("mic hidden when unsupported", n_pg.get_by_role("button",name="Speak").count()==0 and n_pg.get_by_label("Send").count()==1)
+    check("read-aloud hidden without synthesis", n_pg.get_by_role("button",name="Read replies aloud").count()==0)
+    n_pg.close()
     pg.goto(B+"/app/profile/abha"); pg.get_by_role("button",name="Sync now").click(); pg.wait_for_timeout(200); check("abha sync toast", pg.get_by_role("status").count()==1)
     pg.goto(B+"/app/profile/clinics"); pg.get_by_role("button",name="Suggest a clinic").click(); pg.wait_for_timeout(200); check("clinic toast", pg.get_by_role("status").count()==1)
     pg.goto(B+"/app/profile/help"); check("help faqs", pg.locator("details").count()==4)

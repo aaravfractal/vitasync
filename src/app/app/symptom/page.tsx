@@ -2,9 +2,10 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Send } from "lucide-react";
-import { Overline, Pill, ScreenHeader } from "@/components/ui";
+import { Mic, Send, Volume2, VolumeX } from "lucide-react";
+import { Overline, Pill, ScreenHeader, cx } from "@/components/ui";
 import { uid, useStore, writeRecord } from "@/lib/store";
+import { useSpeechInput, useSpeechOutput } from "@/lib/voice";
 import { useT } from "@/lib/use-t";
 import type { Key } from "@/lib/i18n";
 import { useToast } from "@/components/toast";
@@ -38,6 +39,11 @@ function Symptom() {
   const { dispatch } = useStore();
   const toast = useToast();
   const saved = useRef(false);
+  // Dictation writes straight into `input`, so a misheard word is corrected
+  // before sending. Nothing is ever sent on the strength of speech alone.
+  const mic = useSpeechInput(lang, setInput);
+  const tts = useSpeechOutput(lang);
+  const [readAloud, setReadAloud] = useState(false);
 
   // The opener is the one message the assistant does not author, so it follows
   // the UI language and is re-written if the language changes before the first
@@ -75,6 +81,7 @@ function Symptom() {
 
   async function send(text: string) {
     if (!text.trim() || busy) return;
+    if (mic.listening) mic.stop();
     // The opener is UI copy, not conversation: the model never sees it.
     const history = [...messages, { role: "user" as const, content: text }];
     setMessages((m) => [...m, { role: "user", content: text }]);
@@ -89,6 +96,7 @@ function Symptom() {
       }
       const d: Reply = await r.json();
       setMessages((m) => [...m, { role: "assistant", content: d.reply }]);
+      if (readAloud) tts.speak(d.reply);
       setUrgency(d.urgency);
       setNext(d.next_step);
       if (!d.question) saveSession(d, history.find((m) => m.role === "user")?.content ?? text);
@@ -144,18 +152,57 @@ function Symptom() {
         </div>
       )}
 
-      <form onSubmit={(e) => { e.preventDefault(); send(input); }} className="sticky bottom-[72px] mt-3 flex items-center gap-2 bg-paper pt-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={t("sym.placeholder")}
-          aria-label={t("sym.placeholder")}
-          className="flex-1 min-h-[44px] rounded-full bg-surface border border-line px-4 text-[15px] outline-none focus:border-teal"
-        />
-        <button type="submit" aria-label={t("sym.send")} disabled={busy} className="w-11 h-11 rounded-full bg-teal text-white flex items-center justify-center disabled:opacity-50">
-          <Send size={18} />
-        </button>
-      </form>
+      <div className="sticky bottom-[72px] mt-3 bg-paper pt-2">
+        {mic.listening && (
+          <p className="flex items-center gap-2 text-[13px] text-teal font-medium pb-2" role="status">
+            <span className="relative flex w-2.5 h-2.5">
+              <span className="absolute inline-flex w-full h-full rounded-full bg-teal opacity-70 animate-ping" />
+              <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-teal" />
+            </span>
+            {t("sym.listening")}
+          </p>
+        )}
+        {mic.denied && <p className="text-[13px] text-danger pb-2">{t("sym.micDenied")}</p>}
+        <form onSubmit={(e) => { e.preventDefault(); send(input); }} className="flex items-center gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={t("sym.placeholder")}
+            aria-label={t("sym.placeholder")}
+            className="flex-1 min-h-[44px] rounded-full bg-surface border border-line px-4 text-[15px] outline-none focus:border-teal"
+          />
+          {/* Absent in Firefox — the control is not rendered at all rather than
+              rendered dead, so nothing on screen promises what it cannot do. */}
+          {mic.supported && (
+            <button
+              type="button"
+              onClick={() => (mic.listening ? mic.stop() : mic.start(input))}
+              aria-label={mic.listening ? t("sym.micStop") : t("sym.mic")}
+              aria-pressed={mic.listening}
+              className={cx(
+                "w-11 h-11 rounded-full flex items-center justify-center shrink-0 border transition-colors",
+                mic.listening ? "bg-teal text-white border-teal ring-4 ring-teal/25 animate-pulse" : "bg-surface text-muted border-line",
+              )}
+            >
+              <Mic size={18} />
+            </button>
+          )}
+          <button type="submit" aria-label={t("sym.send")} disabled={busy} className="w-11 h-11 rounded-full bg-teal text-white flex items-center justify-center shrink-0 disabled:opacity-50">
+            <Send size={18} />
+          </button>
+        </form>
+        {tts.supported && (
+          <button
+            type="button"
+            onClick={() => { const on = !readAloud; setReadAloud(on); if (!on) tts.cancel(); }}
+            aria-pressed={readAloud}
+            className={cx("inline-flex items-center gap-1.5 mt-2 text-[12.5px] font-medium min-h-[32px]", readAloud ? "text-teal" : "text-muted")}
+          >
+            {readAloud ? <Volume2 size={15} /> : <VolumeX size={15} />}
+            {readAloud ? t("sym.speakOff") : t("sym.speakOn")}
+          </button>
+        )}
+      </div>
       <p className="text-[11.5px] text-faint mt-2">{t("sym.disclaimer")}</p>
     </div>
   );
