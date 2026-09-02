@@ -56,7 +56,12 @@ export default function Landing() {
           <Pill href="/onboarding" variant="secondary" className="bg-white border-white text-teal">Get started</Pill>
         </div>
       </section>
-      <footer className="mx-auto max-w-[1180px] px-6 py-8 text-[12.5px] text-faint">VitaSync AI · Built in Dehradun · hello@vitasync.ai</footer>
+      <footer className="mx-auto max-w-[1180px] px-6 py-8 text-[12.5px] text-faint flex flex-wrap gap-x-2 gap-y-1">
+        <span>VitaSync AI · Built in Dehradun · hello@vitasync.ai</span>
+        <span aria-hidden>·</span>
+        {/* The only way in. /insights is a concept view, not a product surface. */}
+        <Link href="/insights" className="text-muted hover:text-teal">For health departments</Link>
+      </footer>
     </main>
   );
 }

@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# package manager: this repo is npm (package-lock.json). pnpm artefacts from a
+# local install are ignored so a second lockfile never lands in the tree.
+pnpm-lock.yaml
+pnpm-workspace.yaml
