@@ -1,6 +1,6 @@
 "use client";
 import { Check } from "lucide-react";
-import { Card, ScreenHeader } from "@/components/ui";
+import { Card, ScreenHeader, cx } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/use-t";
@@ -25,6 +25,22 @@ export default function Language() {
         ))}
       </Card>
       <p className="text-[12.5px] text-muted mt-3">{t("langs.note")}</p>
+      <Card className="mt-4">
+        <button
+          onClick={() => { const on = !state.elderMode; dispatch({ type: "setElderMode", on }); toast(on ? t("langs.elderOnToast") : t("langs.elderOffToast")); }}
+          role="switch"
+          aria-checked={state.elderMode}
+          className="w-full flex items-center gap-3 text-left"
+        >
+          <span className="flex-1">
+            <span className="block text-[15px] font-semibold">{t("langs.elderTitle")}</span>
+            <span className="block text-[12.5px] text-muted mt-0.5">{t("langs.elderSub")}</span>
+          </span>
+          <span className={cx("w-[52px] h-[32px] rounded-full p-1 shrink-0 transition-colors", state.elderMode ? "bg-teal" : "bg-line")}>
+            <span className={cx("block w-6 h-6 rounded-full bg-surface transition-transform", state.elderMode && "translate-x-5")} />
+          </span>
+        </button>
+      </Card>
     </>
   );
 }

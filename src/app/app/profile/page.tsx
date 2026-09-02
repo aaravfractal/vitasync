@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Users, KeyRound, Building2, Languages, LifeBuoy, ShieldCheck, ChevronRight, Link2 } from "lucide-react";
+import { Users, KeyRound, Building2, Languages, LifeBuoy, ShieldCheck, ChevronRight, Link2, Accessibility } from "lucide-react";
 import { Card, IconChip, ScreenHeader } from "@/components/ui";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/use-t";
@@ -17,7 +17,10 @@ export default function Profile() {
     { href: "/app/profile/access", icon: KeyRound, label: t("prof.access"), sub: t("prof.accessSub", { a: state.grants.filter((g) => !g.revokedAt).length, b: state.log.length }) },
     { href: "/app/profile/clinics", icon: Building2, label: t("prof.clinics"), sub: String(state.clinics.length) },
     { href: "/app/profile/abha", icon: Link2, label: t("prof.abha"), sub: p.abhaLinked ? t("prof.abhaLinked") : t("prof.abhaNot") },
+    // Elder Mode lives on the language screen, and is surfaced here too: the
+    // person who needs it is the least likely to go looking for it.
     { href: "/app/profile/language", icon: Languages, label: t("prof.language"), sub: state.language === "hi" ? "हिन्दी" : "English" },
+    { href: "/app/profile/language", icon: Accessibility, label: t("langs.elderTitle"), sub: state.elderMode ? t("langs.elderOnToast") : t("langs.elderOffToast") },
     { href: "/app/profile/help", icon: LifeBuoy, label: t("prof.help"), sub: "" },
   ];
   return (

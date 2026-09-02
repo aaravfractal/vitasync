@@ -36,14 +36,17 @@ function Symptom() {
   const [next, setNext] = useState<Next>(null);
   const [urgency, setUrgency] = useState<string>("low");
   const endRef = useRef<HTMLDivElement>(null);
-  const { dispatch } = useStore();
+  const { state, dispatch } = useStore();
   const toast = useToast();
   const saved = useRef(false);
   // Dictation writes straight into `input`, so a misheard word is corrected
   // before sending. Nothing is ever sent on the strength of speech alone.
   const mic = useSpeechInput(lang, setInput);
   const tts = useSpeechOutput(lang);
-  const [readAloud, setReadAloud] = useState(false);
+  // Elder Mode starts with read-aloud on: someone who turned on bigger text is
+  // unlikely to want to read a paragraph of advice off a phone.
+  const elder = state.elderMode;
+  const [readAloud, setReadAloud] = useState(elder);
 
   // The opener is the one message the assistant does not author, so it follows
   // the UI language and is re-written if the language changes before the first
@@ -163,6 +166,25 @@ function Symptom() {
           </p>
         )}
         {mic.denied && <p className="text-[13px] text-danger pb-2">{t("sym.micDenied")}</p>}
+        {/* In Elder Mode speaking is the primary input, so the mic is a single
+            large target above the keyboard rather than a 44px icon beside it. */}
+        {elder && mic.supported && (
+          <div className="flex flex-col items-center pb-3">
+            <button
+              type="button"
+              onClick={() => (mic.listening ? mic.stop() : mic.start(input))}
+              aria-label={mic.listening ? t("sym.micStop") : t("sym.mic")}
+              aria-pressed={mic.listening}
+              className={cx(
+                "w-[72px] h-[72px] rounded-full flex items-center justify-center border-2 transition-colors",
+                mic.listening ? "bg-teal text-white border-teal ring-8 ring-teal/20 animate-pulse" : "bg-tint text-teal border-tint-border",
+              )}
+            >
+              <Mic size={32} />
+            </button>
+            <span className="text-[15px] text-muted mt-2">{mic.listening ? t("sym.micStop") : t("sym.mic")}</span>
+          </div>
+        )}
         <form onSubmit={(e) => { e.preventDefault(); send(input); }} className="flex items-center gap-2">
           <input
             value={input}
@@ -173,7 +195,7 @@ function Symptom() {
           />
           {/* Absent in Firefox — the control is not rendered at all rather than
               rendered dead, so nothing on screen promises what it cannot do. */}
-          {mic.supported && (
+          {mic.supported && !elder && (
             <button
               type="button"
               onClick={() => (mic.listening ? mic.stop() : mic.start(input))}

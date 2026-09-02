@@ -140,3 +140,54 @@ h1, h2, h3, .display { font-family: var(--font-display); letter-spacing: -0.015e
     max-width: 300px;
   }
 }
+
+/* ---- Elder Mode ------------------------------------------------------------
+   Toggled by adding `.elder` to <html> (see src/components/html-attrs.tsx).
+
+   The type scale is applied with `zoom`, not a root font-size, because this
+   codebase sizes text in px utilities (`text-[13px]`) that a root change would
+   not touch. `zoom` on the root scales the whole layout — text, icons, padding
+   and tap targets together — so nothing has to be re-measured per screen and
+   every screen reached through Profile gets the same treatment for free.
+   Everything below is a floor on top of that scale, not a replacement for it. */
+html.elder {
+  --elder-zoom: 1.3;
+  zoom: var(--elder-zoom);
+}
+
+/* `dvh` resolves against the unzoomed viewport, so under zoom a 100dvh box comes
+   out 1.3x the height of the actual window and pushes the bottom nav off-screen.
+   Every viewport-height rule is divided back down by the same factor. */
+html.elder .screen { min-height: calc(100dvh / var(--elder-zoom)); }
+
+/* `faint` is a low-contrast grey meant for incidental text. At this size it is
+   still the hardest thing on the screen to read, so elder mode retires it. */
+html.elder .text-faint { color: var(--color-muted); }
+
+/* No patient-facing text below 14px, before the zoom is even counted. */
+html.elder body { font-size: 15px; }
+html.elder .screen p,
+html.elder .screen div,
+html.elder .screen span,
+html.elder .screen a,
+html.elder .screen button,
+html.elder .screen li { font-size: max(1em, 14px); }
+
+/* 56px tap targets. Buttons sitting inside a sentence are exempt: stretching an
+   inline "Change" link to 56px breaks the line it lives in without making
+   anything easier to hit. */
+html.elder button,
+html.elder input,
+html.elder select,
+html.elder a[class*="rounded-"] { min-height: 56px; }
+html.elder p button,
+html.elder p a { min-height: 0; }
+html.elder nav[aria-label="Primary"] a { min-height: 64px; }
+
+@media (min-width: 1024px) {
+  /* The desktop phone frame is sized in dvh too — same correction, and the
+     screen goes back to filling the frame rather than the window. */
+  html.elder .deck { min-height: calc(100dvh / var(--elder-zoom)); }
+  html.elder .deck-frame { height: calc(100dvh / var(--elder-zoom) - 96px); }
+  html.elder .deck-frame .screen { min-height: 100%; }
+}

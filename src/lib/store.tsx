@@ -9,7 +9,7 @@ export interface Appointment { id: string; doctor: string; clinic: string; when:
 export interface Order { id: string; medicine: string; qty: number; amount: number; pharmacy: string; at: string; status: "placed" | "delivered" }
 export interface Grant { id: string; grantee: string; scope: string; since: string; expiresAt: string; revokedAt?: string }
 export interface LogEntry { id: string; actor: string; action: string; at: string }
-export interface Family { id: string; name: string; relation: string; otpTarget: boolean }
+export interface Family { id: string; name: string; relation: string; otpTarget: boolean; phone?: string }
 export interface Reminder { id: string; text: string; at: string }
 
 export interface State {
@@ -25,6 +25,8 @@ export interface State {
   family: Family[];
   reminders: Reminder[];
   language: "en" | "hi";
+  /** Bigger type, a four-card home, a three-item nav, and replies read aloud. */
+  elderMode: boolean;
   clinics: string[];
   device: ConnectedDevice | null;
   targets: WellnessTargets;
@@ -48,9 +50,10 @@ const initial: State = {
     { id: "l1", actor: "Dr. Meera Joshi", action: "opened record", at: "2026-08-24T10:32:00+05:30" },
     { id: "l2", actor: "Dr Lal PathLabs", action: "added report", at: "2026-08-18T08:05:00+05:30" },
   ],
-  family: [{ id: "f1", name: "Rahul Rawat", relation: "Son", otpTarget: true }, { id: "f2", name: "Meena Rawat", relation: "Daughter", otpTarget: false }],
+  family: [{ id: "f1", name: "Rahul Rawat", relation: "Son", otpTarget: true, phone: "+91 98765 43210" }, { id: "f2", name: "Meena Rawat", relation: "Daughter", otpTarget: false }],
   reminders: [],
   language: "en",
+  elderMode: false,
   clinics: ["Doon Clinic", "Dr Lal PathLabs", "SRL Diagnostics"],
   device: null,
   targets: { steps: 8000, calories: 400, activeMinutes: 45, water: 8 },
@@ -72,6 +75,7 @@ type Action =
   | { type: "toggleOtpTarget"; id: string }
   | { type: "addFamily"; member: Family }
   | { type: "setLanguage"; language: "en" | "hi" }
+  | { type: "setElderMode"; on: boolean }
   | { type: "addReminder"; reminder: Reminder }
   | { type: "removeReminder"; id: string }
   | { type: "connectDevice"; device: ConnectedDevice; day: WellnessDay }
@@ -102,6 +106,7 @@ function reducer(s: State, a: Action): State {
     case "toggleOtpTarget": return { ...s, family: s.family.map((f) => (f.id === a.id ? { ...f, otpTarget: !f.otpTarget } : f)) };
     case "addFamily": return { ...s, family: [...s.family, a.member] };
     case "setLanguage": return { ...s, language: a.language };
+    case "setElderMode": return { ...s, elderMode: a.on };
     case "addReminder": return { ...s, reminders: [a.reminder, ...s.reminders] };
     case "removeReminder": return { ...s, reminders: s.reminders.filter((r) => r.id !== a.id) };
     case "connectDevice": return { ...s, device: a.device, wellness: a.day };

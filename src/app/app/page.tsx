@@ -9,10 +9,18 @@ import { useT } from "@/lib/use-t";
 import { daysUsed } from "@/lib/demo-data";
 import { dayOrEmpty, formatSteps, todayKey } from "@/lib/wellness";
 import type { Key } from "@/lib/i18n";
+import { ElderHome } from "./elder-home";
 
 const greetingKey = (): Key => { const h = new Date().getHours(); return h < 12 ? "home.morning" : h < 17 ? "home.afternoon" : "home.evening"; };
 
 export default function Home() {
+  const { state } = useStore();
+  // Elder Mode replaces this screen rather than hiding parts of it — see the
+  // note in elder-home.tsx. Everything below stays reachable through Profile.
+  return state.elderMode ? <ElderHome /> : <FullHome />;
+}
+
+function FullHome() {
   const { state, dispatch } = useStore();
   const { t, d } = useT();
   const first = state.patient.name.split(" ")[0];
