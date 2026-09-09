@@ -389,6 +389,12 @@ export const en = {
   "u.code": "6-digit code",
   "u.open": "Open record",
   "u.foot": "Full record opens only with a one-time code sent to the patient's or caregiver's phone. Every access is logged and visible to the patient. Link expires in 24 hours.",
+  "u.verifySeal": "Verify this seal",
+  "u.verifyBusy": "Checking…",
+  "u.verifyOk": "All {n} entries match their seals. Nothing in this record has been changed since it was written.",
+  "u.verifyBad": "{k} of {n} entries do not match their seals. Treat this record as unverified.",
+  "u.verifyNote": "Checked on this phone, just now. Nothing was sent anywhere.",
+  "u.verifyAgain": "Check again",
 
   // ---- camp mode (/camp) -----------------------------------------------
   "camp.title": "Health camp",
@@ -799,6 +805,12 @@ export const hi: Record<Key, string> = {
   "u.code": "6 अंकों का कोड", // REVIEW
   "u.open": "रिकॉर्ड खोलें", // REVIEW
   "u.foot": "पूरा रिकॉर्ड सिर्फ़ उस एक बार के कोड से खुलता है जो मरीज़ या देखभालकर्ता के फ़ोन पर जाता है। हर बार खोलना दर्ज होता है और मरीज़ को दिखता है। लिंक 24 घंटे में ख़त्म हो जाता है।", // REVIEW
+  "u.verifySeal": "यह सील जाँचें", // REVIEW
+  "u.verifyBusy": "जाँच हो रही है…", // REVIEW
+  "u.verifyOk": "सभी {n} प्रविष्टियाँ अपनी सील से मेल खाती हैं। लिखे जाने के बाद इस रिकॉर्ड में कुछ नहीं बदला।", // REVIEW
+  "u.verifyBad": "{n} में से {k} प्रविष्टियाँ अपनी सील से मेल नहीं खातीं। इस रिकॉर्ड को अपुष्ट मानिए।", // REVIEW
+  "u.verifyNote": "इसी फ़ोन पर, अभी जाँचा गया। कुछ भी कहीं नहीं भेजा गया।", // REVIEW
+  "u.verifyAgain": "फिर से जाँचें", // REVIEW
 
   // ---- camp mode (/camp) -----------------------------------------------
   "camp.title": "स्वास्थ्य शिविर", // REVIEW

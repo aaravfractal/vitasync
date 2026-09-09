@@ -15,22 +15,6 @@ export const patient: Patient = {
 };
 
 /**
- * A year ago today, to the day.
- *
- * The "a year ago" card would otherwise depend on a hardcoded date that quietly
- * stops matching a week later, and a demo screen that works only in the week it
- * was written is worse than no screen. Computed once at module load, then frozen
- * into the store on first sign-in like every other seed value.
- */
-function aYearAgoToday(hour = 9, minute = 15) {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() - 1);
-  d.setHours(hour, minute, 0, 0);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(hour)}:${pad(minute)}:00+05:30`;
-}
-
-/**
  * The days Asha has logged something, ending yesterday.
  *
  * Streaks are the one number here that cannot be a fixed list: it is counted
@@ -49,19 +33,33 @@ export function seedActiveDays(days = 34): string[] {
   return out;
 }
 
+/**
+ * Seed timeline.
+ *
+ * Every entry carries the seal it was written with. The hash is stored data,
+ * not something recomputed on read: verifying means hashing the content again
+ * and comparing it to this, so a seal generated from the same object it is
+ * checked against would prove nothing. These are the SHA-256 of
+ * `canonicalRecord(...)` for each entry — edit a title, a summary, a provider
+ * or a date here and that entry will correctly report a broken seal until the
+ * value below is regenerated.
+ */
 export const records: HealthRecord[] = [
   {
     id: "r1", type: "consult", occurredAt: "2026-08-24T10:30:00+05:30", provider: "Dr. Meera Joshi · Doon Clinic",
     title: "GP consult — recurring headache", summary: "Tension-type headache likely. Hydration, sleep hygiene. Review in 2 weeks if persistent.",
+    sha256: "f2169c171e8c0ff0ada68e50de7afb4e00c1788c2b80a6a3a6c3d27748083127",
   },
   {
     id: "r2", type: "report", occurredAt: "2026-08-18T08:05:00+05:30", provider: "Dr Lal PathLabs",
     title: "HbA1c and lipid panel", summary: "HbA1c 6.4% (improving from 7.1). LDL 96 mg/dL in range. Hb 11.8 g/dL, watch.",
     metric: { label: "HbA1c", value: 6.4, unit: "%", betterWhen: "lower" },
+    sha256: "824fcd816eecfe0184439468ba86a9124ff5ef0941e1550ddf56c0239b64c9d8",
   },
   {
     id: "r3", type: "rx", occurredAt: "2026-08-04T17:20:00+05:30", provider: "Dr. Meera Joshi",
     title: "Metformin 500 mg", summary: "1 tablet after lunch, 30 days. Refill needs a valid prescription on your record.",
+    sha256: "30a39c3c4c61e526f9afca04c6173b2bd1da108a000588f8bd27dc37869a3c57",
   },
   {
     id: "r4", type: "ai_session", occurredAt: "2026-07-29T21:12:00+05:30", provider: "VitaSync assistant",
@@ -73,37 +71,49 @@ export const records: HealthRecord[] = [
       advice: "Water, a proper meal and rest. Avoid screens for an hour.",
       nextStep: "Book a GP — if it turns sudden or one-sided, or comes with fever or a stiff neck",
     },
+    sha256: "68a4eb1ec7a138bd2c904b691bcf7d378c7d4fe789338244ea45023e542b2268",
   },
   {
     id: "r5", type: "report", occurredAt: "2026-07-10T09:00:00+05:30", provider: "SRL Diagnostics",
     title: "Complete blood count", summary: "Within normal limits except Hb 11.6 g/dL.",
+    sha256: "48a7683436bffc08fd8927973d0d7a849112219e3a502cbd3abe75647e37f99b",
   },
   {
     id: "r6", type: "consult", occurredAt: "2026-06-12T16:40:00+05:30", provider: "Dr. S. Bisht · CMI Hospital",
     title: "Diabetes review", summary: "Metformin continued. Diet and walking discussed. Repeat HbA1c in 8 weeks.",
+    sha256: "cfbe7fbf5c29e5ba633fbd9c4ecccd09282ade91eed3765322749361aac7b408",
   },
   {
     id: "r7", type: "report", occurredAt: "2026-05-02T08:30:00+05:30", provider: "Dr Lal PathLabs",
     title: "Thyroid profile", summary: "TSH 3.1 mIU/L, T3 and T4 in range. No change advised.",
+    sha256: "d1376c69acaa5e5c3d54bf71c408b156c581d7016f5150b7c99d099bb924423d",
   },
   {
     id: "r8", type: "rx", occurredAt: "2026-03-18T18:05:00+05:30", provider: "Dr. Meera Joshi",
     title: "Vitamin D3 1000 IU", summary: "1 capsule each morning, 60 days. Recheck after the course.",
+    sha256: "ef657d4456a782f27f145b42b6609a82135423bcca0f03c078c91aa1904fc5d2",
   },
   {
     id: "r9", type: "report", occurredAt: "2026-01-22T08:10:00+05:30", provider: "SRL Diagnostics",
     title: "Fasting glucose", summary: "112 mg/dL fasting. Above range; diet reviewed at the next visit.",
+    sha256: "fc605925f1e70a1e7f520e59810d557bc2484af6c1c9977303e54297456b0dd1",
   },
   {
     id: "r10", type: "consult", occurredAt: "2025-11-08T11:20:00+05:30", provider: "Dr. Meera Joshi · Doon Clinic",
     title: "Seasonal cough", summary: "Viral, no antibiotic needed. Steam and fluids. Settled in a week.",
+    sha256: "288f9772c01bddfb738dceea35d3d3056f781bb5c4b95dc59d23a23eb6c62fbd",
   },
   {
     // The year-ago comparison. Same metric label as r2, so the home card can
     // subtract the two and show a year of progress rather than an old title.
-    id: "r11", type: "report", occurredAt: aYearAgoToday(), provider: "Dr Lal PathLabs",
+    // Fixed, not computed. A seal is the hash of the content as written, so a
+    // date that moves each day cannot carry one — and without a stored seal the
+    // doctor's "Verify this seal" would be comparing a hash against itself.
+    // The ±7-day window puts this in range of "a year ago today" until 19 Sep.
+    id: "r11", type: "report", occurredAt: "2025-09-12T09:15:00+05:30", provider: "Dr Lal PathLabs",
     title: "HbA1c and lipid panel", summary: "HbA1c 7.8%. LDL 128 mg/dL. Metformin started at this visit.",
     metric: { label: "HbA1c", value: 7.8, unit: "%", betterWhen: "lower" },
+    sha256: "56ef180215aa0673e4f7fc042c851a12afec43886ef419b29ce3dbe5fee91ba8",
   },
 ];
 

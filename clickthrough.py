@@ -110,6 +110,27 @@ with sync_playwright() as p:
     check("technical details hide again", pg.get_by_text(re.compile(r"^[0-9a-f]{64}$")).count()==0)
     pg.get_by_role("button",name="Verify now").click(); pg.wait_for_timeout(300)
     check("hash verifies", pg.get_by_text("Matches · untampered").count()==1)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    # Rewrite an entry's text while leaving its seal alone — exactly what a
+    # tampered record looks like — and the check must go red. A seal that cannot
+    # fail is decoration, so this asserts the failure, not just the success.
+    pg.evaluate("""() => { const s = JSON.parse(localStorage.getItem('vitasync.v1'));
+      const r = s.records.find((x) => x.title === 'HbA1c and lipid panel');
+      r.summary = 'HbA1c 5.1%. Everything normal.';
+      localStorage.setItem('vitasync.v1', JSON.stringify(s)); }""")
+    pg.reload(); pg.wait_for_timeout(900)
+    pg.get_by_text("HbA1c and lipid panel").first.click(); pg.wait_for_timeout(700)
+    check("an altered entry fails its seal", pg.get_by_text("Seal does not match", exact=False).count()==1)
+    pg.get_by_role("button",name="Verify now").click(); pg.wait_for_timeout(400)
+    check("verify now also reports the mismatch", pg.get_by_text("Mismatch · altered").count()==1)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    pg.evaluate("""() => { const s = JSON.parse(localStorage.getItem('vitasync.v1'));
+      const r = s.records.find((x) => x.title === 'HbA1c and lipid panel');
+      r.summary = 'HbA1c 6.4% (improving from 7.1). LDL 96 mg/dL in range. Hb 11.8 g/dL, watch.';
+      localStorage.setItem('vitasync.v1', JSON.stringify(s)); }""")
+    pg.reload(); pg.wait_for_timeout(900)
+    pg.get_by_text("HbA1c and lipid panel").first.click(); pg.wait_for_timeout(700)
+    check("the restored entry seals clean again", pg.get_by_text("Seal matches", exact=False).count()==1)
     with pg.expect_download(): pg.get_by_role("button",name="Download").click()
     check("record download", True); pg.keyboard.press("Escape")
     # upload a report: encrypted on the device, only ciphertext stored, decrypted to view
@@ -308,6 +329,18 @@ with sync_playwright() as p:
           and pg.get_by_label("6-digit code").count()==1)
     code=pg.locator("span.mono.font-bold").inner_text(); pg.get_by_label("6-digit code").fill(code); pg.get_by_role("button",name="Open record").click(); pg.wait_for_timeout(1000)
     check("public otp unlock", pg.get_by_text("Approved by the patient").count()==1)
+    # The doctor can check the record on their own phone. This is display only:
+    # it appears with the unlocked panel, never before it, and changes nothing
+    # about what is unlocked.
+    check("verify button is post-unlock only", pg.get_by_role("button",name="Verify this seal").count()==1)
+    vbox=pg.get_by_role("button",name="Verify this seal").bounding_box()
+    check("verify button is one large target", vbox["height"]>=52)
+    check("no hex before it is asked for", pg.get_by_text("Show technical details").count()==0)
+    pg.get_by_role("button",name="Verify this seal").click(); pg.wait_for_timeout(1800)
+    check("every seal matches on the doctor's device", pg.get_by_text("match their seals", exact=False).count()==1
+          and pg.get_by_text("Nothing in this record has been changed", exact=False).count()==1)
+    pg.get_by_role("button",name="Show technical details").click(); pg.wait_for_timeout(400)
+    check("technical details list the digests", pg.get_by_text(re.compile(r"^[0-9a-f]{4}…[0-9a-f]{4}$")).count()>=10)
     # emergency directory: full list, nearest badge, call + directions per row
     pg.goto(B+"/app/emergency"); pg.wait_for_timeout(5000)
     check("emergency 112 and 108", pg.get_by_role("link",name="Call 112").count()==1 and pg.get_by_role("link",name="Ambulance · 108").count()==1)
