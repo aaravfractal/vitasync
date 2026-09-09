@@ -66,7 +66,16 @@ with sync_playwright() as p:
     check("booking confirmed", pg.get_by_text("Booked").count()>=1)
     pg.get_by_role("link",name="View in record").click(); pg.wait_for_timeout(600); check("consult in record", pg.get_by_text("Booked: General physician consult").count()>=1)
     # record detail + verify + download
-    pg.get_by_text("HbA1c and lipid panel").first.click(); pg.wait_for_timeout(300); pg.get_by_role("button",name="Verify now").click(); pg.wait_for_timeout(300)
+    pg.get_by_text("HbA1c and lipid panel").first.click(); pg.wait_for_timeout(600)
+    # The seal answers itself on open — a clinician should not have to press
+    # anything to learn the record is unaltered — and says so without hex.
+    check("seal check states the verdict on open", pg.get_by_text("Seal matches", exact=False).count()==1)
+    check("no hex until asked", pg.get_by_text(re.compile(r"^[0-9a-f]{64}$")).count()==0)
+    pg.get_by_role("button",name="Show technical details").click(); pg.wait_for_timeout(300)
+    check("technical details reveal the digest", pg.get_by_text(re.compile(r"^[0-9a-f]{64}$")).count()==1)
+    pg.get_by_role("button",name="Hide technical details").click(); pg.wait_for_timeout(200)
+    check("technical details hide again", pg.get_by_text(re.compile(r"^[0-9a-f]{64}$")).count()==0)
+    pg.get_by_role("button",name="Verify now").click(); pg.wait_for_timeout(300)
     check("hash verifies", pg.get_by_text("Matches · untampered").count()==1)
     with pg.expect_download(): pg.get_by_role("button",name="Download").click()
     check("record download", True); pg.keyboard.press("Escape")
@@ -115,7 +124,11 @@ with sync_playwright() as p:
     check("order placed", pg.get_by_text("placed").count()>=1)
     pg.get_by_role("button",name="Receipt").first.click(); pg.wait_for_timeout(200); check("receipt sheet", pg.get_by_role("dialog").count()==1); pg.keyboard.press("Escape")
     # vault download + manage access
-    pg.goto(B+"/app/vault")
+    pg.goto(B+"/app/vault"); pg.wait_for_timeout(900)
+    check("ledger states each seal", pg.get_by_text("Seal matches", exact=False).count()>=5)
+    check("ledger hides hex by default", pg.get_by_text(re.compile(r"^[0-9a-f]{4}…[0-9a-f]{4}$")).count()==0)
+    pg.get_by_role("button",name="Show technical details").click(); pg.wait_for_timeout(300)
+    check("ledger reveals short hashes", pg.get_by_text(re.compile(r"^[0-9a-f]{4}…[0-9a-f]{4}$")).count()>=5)
     with pg.expect_download(): pg.get_by_role("button",name="Download all").click()
     check("vault export", True)
     pg.get_by_role("link",name="Manage access").click(); pg.wait_for_url("**/profile/access")
@@ -505,8 +518,9 @@ with sync_playwright() as p:
     step("8 the record opens on the timeline", dp.get_by_text("HbA1c and lipid panel").count()>=1)
     dp.get_by_text("HbA1c and lipid panel").first.click(); dp.wait_for_timeout(500)
     step("8b the entry opens", dp.get_by_role("dialog").count()==1)
+    step("9 the seal check reads clean on open", dp.get_by_text("सील मेल खाती है", exact=False).count()==1)
     dp.get_by_role("button",name="अभी जाँचें").click(); dp.wait_for_timeout(600)
-    step("9 verify now matches the seal", dp.get_by_text("मेल खाता है · कोई छेड़छाड़ नहीं").count()==1)
+    step("9b verify now matches the seal", dp.get_by_text("मेल खाता है · कोई छेड़छाड़ नहीं").count()==1)
     demo.close()
 
     b.close()

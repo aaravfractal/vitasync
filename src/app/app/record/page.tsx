@@ -7,6 +7,7 @@ import { Sheet } from "@/components/sheet";
 import { useToast } from "@/components/toast";
 import { AttachmentView } from "@/components/attachment-view";
 import { UploadReportCard, UploadReportSheet } from "@/components/upload-report";
+import { SealCheck, TechToggle } from "@/components/seal-check";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/use-t";
 import { ciphertextHash, decryptToBlob } from "@/lib/attachments";
@@ -47,6 +48,7 @@ export default function Record() {
   const [openRec, setOpenRec] = useState<HealthRecord | null>(null);
   const [verify, setVerify] = useState<"idle" | "ok" | "bad">("idle");
   const [upload, setUpload] = useState(false);
+  const [tech, setTech] = useState(false);
 
   const monthOf = (iso: string) => d(iso, { month: "long", year: "numeric" }).toUpperCase();
 
@@ -97,7 +99,7 @@ export default function Record() {
             <li key={r.id} className="relative">
               <span className={cx("absolute -left-[35px] top-1 w-5 h-5 rounded-full ring-4 ring-paper", gold ? "bg-gold" : "bg-teal")} />
               {showMonth && <div className="overline text-faint mb-2">{m}</div>}
-              <RecordCard r={r} onOpen={() => { setOpenRec(r); setVerify("idle"); }} />
+              <RecordCard r={r} onOpen={() => { setOpenRec(r); setVerify("idle"); setTech(false); }} />
             </li>
           );
         })}
@@ -113,12 +115,18 @@ export default function Record() {
             <p className="text-[14.5px] mt-3">{openRec.summary}</p>
             {openRec.attachment && <AttachmentView attachment={openRec.attachment} />}
             <div className="mt-4 bg-paper border border-line rounded-[14px] p-3 text-[12.5px]">
-              <div className="text-muted">{openRec.attachment ? t("rec.shaEncrypted") : t("rec.sha")}</div>
-              <div className="mono break-all">{openRec.sha256 ?? t("rec.pending")}</div>
+              <SealCheck r={openRec} />
               <button onClick={() => reverify(openRec)} className="text-teal font-semibold mt-2">{t("common.verifyNow")}</button>
               {verify === "ok" && <span className="ml-3 text-teal">{t("common.hashMatches")}</span>}
               {verify === "bad" && <span className="ml-3 text-danger">{t("common.hashMismatch")}</span>}
-              <div className="text-faint mt-1">{shortHash(openRec.sha256)} · {t("rec.anchorNext")}</div>
+              <TechToggle on={tech} onToggle={() => setTech((v) => !v)} className="block mt-2" />
+              {tech && (
+                <div className="mt-1.5 pt-1.5 border-t border-divider">
+                  <div className="text-muted">{openRec.attachment ? t("rec.shaEncrypted") : t("rec.sha")}</div>
+                  <div className="mono break-all">{openRec.sha256 ?? t("rec.pending")}</div>
+                  <div className="text-faint mt-1">{shortHash(openRec.sha256)} · {t("rec.anchorNext")}</div>
+                </div>
+              )}
             </div>
             <div className="flex gap-2 mt-4">
               {openRec.type === "rx" ? <Pill href="/app/refills" className="flex-1">{t("rec.refillNow")}</Pill> : <Pill onClick={() => download(openRec)} className="flex-1">{t("common.download")}</Pill>}

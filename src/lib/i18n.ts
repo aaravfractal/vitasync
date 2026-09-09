@@ -32,6 +32,14 @@ export const en = {
   "common.offline": "Offline — showing last saved emergency info",
   "common.loggedByYou": "Logged by you",
 
+  // ---- seal check ------------------------------------------------------
+  "seal.ok": "Seal matches — unchanged since {date}",
+  "seal.bad": "Seal does not match — this entry has changed",
+  "seal.checking": "Checking the seal…",
+  "seal.pending": "Not sealed yet",
+  "seal.showTech": "Show technical details",
+  "seal.hideTech": "Hide technical details",
+
   // ---- bottom nav ------------------------------------------------------
   "nav.home": "Home",
   "nav.check": "Check",
@@ -418,6 +426,14 @@ export const hi: Record<Key, string> = {
   "common.generating": "बन रहा है…", // REVIEW
   "common.offline": "ऑफ़लाइन — पिछली सहेजी गई आपातकालीन जानकारी दिख रही है", // REVIEW
   "common.loggedByYou": "आपने दर्ज किया", // REVIEW
+
+  // ---- seal check ------------------------------------------------------
+  "seal.ok": "सील मेल खाती है — {date} से इसमें कोई बदलाव नहीं", // REVIEW
+  "seal.bad": "सील मेल नहीं खाती — इस प्रविष्टि में बदलाव हुआ है", // REVIEW
+  "seal.checking": "सील जाँची जा रही है…", // REVIEW
+  "seal.pending": "अभी सील नहीं हुई", // REVIEW
+  "seal.showTech": "तकनीकी जानकारी दिखाएँ", // REVIEW
+  "seal.hideTech": "तकनीकी जानकारी छिपाएँ", // REVIEW
 
   // ---- bottom nav ------------------------------------------------------
   "nav.home": "होम", // REVIEW

@@ -1,13 +1,17 @@
 "use client";
+import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Card, Pill, ScreenHeader, StatRow } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { useStore } from "@/lib/store";
+import { SealCheck, TechToggle, useSealUnsealed } from "@/components/seal-check";
 import { shortHash } from "@/lib/hash";
 
 export default function Vault() {
   const { state } = useStore();
   const toast = useToast();
+  const [tech, setTech] = useState(false);
+  useSealUnsealed();
   const active = state.grants.filter((g) => !g.revokedAt);
   function downloadAll() {
     const blob = new Blob([JSON.stringify({ patient: state.patient, records: state.records, vitals: state.vitals, prescriptions: state.prescriptions, accessLog: state.log }, null, 2)], { type: "application/json" });
@@ -24,12 +28,19 @@ export default function Vault() {
       </Card>
       <Card className="mt-3"><StatRow items={[{ value: String(state.records.filter((r) => r.sha256).length), label: "entries sealed" }, { value: String(active.length), label: "with access" }, { value: "0", label: "third parties" }]} /></Card>
 
-      <h2 className="text-[15px] font-bold mt-5 mb-2">Recent seals</h2>
+      <div className="flex items-baseline justify-between mt-5 mb-2">
+        <h2 className="text-[15px] font-bold">Recent seals</h2>
+        <TechToggle on={tech} onToggle={() => setTech((v) => !v)} />
+      </div>
       <Card className="p-0 divide-y divide-divider">
         {[...state.records].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, 6).map((r) => (
-          <div key={r.id} className="flex items-center justify-between p-3.5 text-[13px]">
-            <div className="min-w-0"><div className="font-medium truncate">{r.title}</div><div className="mono text-[12px] text-muted">{shortHash(r.sha256)}</div></div>
-            <span className="text-[11.5px] text-faint">{new Date(r.occurredAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+          <div key={r.id} className="flex items-start justify-between gap-3 p-3.5 text-[13px]">
+            <div className="min-w-0">
+              <div className="font-medium truncate">{r.title}</div>
+              <SealCheck r={r} className="mt-0.5" />
+              {tech && <div className="mono text-[12px] text-muted mt-0.5">{shortHash(r.sha256)}</div>}
+            </div>
+            <span className="text-[11.5px] text-faint shrink-0">{new Date(r.occurredAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
           </div>
         ))}
       </Card>
