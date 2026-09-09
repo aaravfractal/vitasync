@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from "react";
 import { patient as seedPatient, records as seedRecords, vitals as seedVitals, prescriptions as seedRx } from "./demo-data";
 import type { ConnectedDevice, HealthRecord, Patient, Prescription, Vital, WellnessDay, WellnessTargets } from "./types";
-import { emptyDay } from "./wellness";
+import { emptyDay, todayKey } from "./wellness";
 import { canonicalRecord, sha256Hex } from "./hash";
 
 export interface Appointment { id: string; doctor: string; clinic: string; when: string; note: string }
@@ -46,6 +46,17 @@ export interface State {
   targets: WellnessTargets;
   wellness: WellnessDay;
   lastWellnessLog: string; // date of the last activity summary written to the record
+  /**
+   * Local date keys on which the patient logged a vital or a glass of water.
+   * Nothing else in the store is dated per-day — vitals carry a 7-point series
+   * with no dates and wellness holds only today — so a streak has to be
+   * recorded as it happens rather than derived after the fact.
+   */
+  activeDays: string[];
+  /** Times "Verify now" has been run per record id. Display only. */
+  verifyCounts: Record<string, number>;
+  /** Milestones already shown, so each one fires once for good. */
+  milestonesShown: string[];
 }
 
 const initial: State = {
@@ -74,6 +85,9 @@ const initial: State = {
   targets: { steps: 8000, calories: 400, activeMinutes: 45, water: 8 },
   wellness: emptyDay(""),
   lastWellnessLog: "",
+  activeDays: [],
+  verifyCounts: {},
+  milestonesShown: [],
 };
 
 type Action =
@@ -100,7 +114,12 @@ type Action =
   | { type: "addWater"; date: string }
   | { type: "setTargets"; targets: WellnessTargets }
   | { type: "wellnessLogged"; date: string }
+  | { type: "countVerify"; id: string }
+  | { type: "markMilestone"; key: string }
   | { type: "reset" };
+
+/** A day key added once. Order does not matter; the streak reads it as a set. */
+const withDay = (days: string[], date: string) => (days.includes(date) ? days : [...days, date]);
 
 /** Today's row, or a fresh one — never yesterday's numbers under today's date. */
 const dayOf = (s: State, date: string) => (s.wellness.date === date ? s.wellness : emptyDay(date));
@@ -113,7 +132,11 @@ function reducer(s: State, a: Action): State {
     case "reset": return initial;
     case "addRecord": return { ...s, records: [a.record, ...s.records] };
     case "sealRecord": return { ...s, records: s.records.map((r) => (r.id === a.id ? { ...r, sha256: a.sha256, sealedAt: new Date().toISOString() } : r)) };
-    case "addVital": return { ...s, vitals: s.vitals.map((v) => (v.metric === a.vital.metric ? { ...v, ...a.vital, series: [...(v.series ?? []), Number(a.vital.value.split("/")[0])].slice(-7) } : v)) };
+    case "addVital": return {
+      ...s,
+      vitals: s.vitals.map((v) => (v.metric === a.vital.metric ? { ...v, ...a.vital, series: [...(v.series ?? []), Number(a.vital.value.split("/")[0])].slice(-7) } : v)),
+      activeDays: withDay(s.activeDays, todayKey()),
+    };
     case "addAppointment": return { ...s, appointments: [a.appt, ...s.appointments] };
     case "addOrder": return { ...s, orders: [a.order, ...s.orders] };
     case "revokeGrant": return { ...s, grants: s.grants.map((g) => (g.id === a.id ? { ...g, revokedAt: new Date().toISOString() } : g)) };
@@ -135,10 +158,12 @@ function reducer(s: State, a: Action): State {
     }
     case "addWater": {
       const d = dayOf(s, a.date);
-      return { ...s, wellness: { ...d, water: Math.min(d.water + 1, 20) } };
+      return { ...s, wellness: { ...d, water: Math.min(d.water + 1, 20) }, activeDays: withDay(s.activeDays, a.date) };
     }
     case "setTargets": return { ...s, targets: a.targets };
     case "wellnessLogged": return { ...s, lastWellnessLog: a.date };
+    case "countVerify": return { ...s, verifyCounts: { ...s.verifyCounts, [a.id]: (s.verifyCounts[a.id] ?? 0) + 1 } };
+    case "markMilestone": return s.milestonesShown.includes(a.key) ? s : { ...s, milestonesShown: [...s.milestonesShown, a.key] };
   }
 }
 

@@ -52,6 +52,12 @@ with sync_playwright() as p:
     pg.get_by_label("Mobile number").fill("9876543210"); pg.get_by_role("button",name="Send code").click()
     pg.get_by_label("6-digit code").fill("482913"); pg.get_by_role("button",name="Continue").click(); pg.wait_for_url("**/app")
     check("onboarding signs in", pg.url.endswith("/app"))
+    pg.wait_for_timeout(400)
+    cold=pg.locator("main.screen").inner_text()
+    # Nothing to report yet, so the dashboard says nothing — no zero streak, no
+    # empty feed, no anniversary card standing in for data that does not exist.
+    check("cold home invents no streak", "in a row" not in cold)
+    check("cold home invents no feed", "Hide" not in cold and "A year ago today" not in cold)
     # symptom → remind later → home reminder
     pg.goto(B+"/app/symptom"); pg.get_by_role("button",name="Dull headache since morning").click(); pg.wait_for_timeout(800)
     pg.get_by_label("Describe how you feel").fill("all over, since I woke up"); pg.get_by_label("Send").click(); pg.wait_for_timeout(1200)
@@ -119,6 +125,14 @@ with sync_playwright() as p:
     # vitals log
     pg.goto(B+"/app/vitals"); pg.get_by_role("button",name="Log").click(); pg.get_by_label("Metric").select_option("hr"); pg.get_by_label("Value (bpm)").fill("70"); pg.get_by_role("button",name="Save reading").click(); pg.wait_for_timeout(400)
     check("vital logged", pg.get_by_text("70 bpm").count()>=1)
+    check("streak starts on vitals", pg.get_by_text("1 day in a row").count()==1)
+    pg.goto(B+"/app"); pg.wait_for_timeout(500)
+    check("streak on home", pg.get_by_text("1 day in a row").count()==1)
+    check("today feed lists the log", pg.get_by_text("Today", exact=False).count()>=1
+          and pg.get_by_text("Resting heart rate 70 bpm").count()>=1)
+    pg.get_by_role("button",name="Hide").click(); pg.wait_for_timeout(200)
+    check("today feed collapses", pg.get_by_text("Resting heart rate 70 bpm").count()==0
+          and pg.get_by_role("button",name="Show").count()==1)
     # refills order + receipt
     pg.goto(B+"/app/refills"); pg.get_by_role("button",name="Reorder").first.click(); pg.get_by_role("button",name="Place order").click(); pg.wait_for_timeout(400)
     check("order placed", pg.get_by_text("placed").count()>=1)
@@ -126,6 +140,7 @@ with sync_playwright() as p:
     # vault download + manage access
     pg.goto(B+"/app/vault"); pg.wait_for_timeout(900)
     check("ledger states each seal", pg.get_by_text("Seal matches", exact=False).count()>=5)
+    check("ledger counts verifications", pg.get_by_text(re.compile(r"^Verified (once|\d+ times)$")).count()>=1)
     check("ledger hides hex by default", pg.get_by_text(re.compile(r"^[0-9a-f]{4}…[0-9a-f]{4}$")).count()==0)
     pg.get_by_role("button",name="Show technical details").click(); pg.wait_for_timeout(300)
     check("ledger reveals short hashes", pg.get_by_text(re.compile(r"^[0-9a-f]{4}…[0-9a-f]{4}$")).count()>=5)

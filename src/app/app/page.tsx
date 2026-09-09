@@ -9,6 +9,7 @@ import { useT } from "@/lib/use-t";
 import { daysUsed } from "@/lib/demo-data";
 import { dayOrEmpty, formatSteps, todayKey } from "@/lib/wellness";
 import type { Key } from "@/lib/i18n";
+import { MilestoneNote, OnThisDay, StreakRow, TodayFeed } from "@/components/dashboard";
 import { ElderHome } from "./elder-home";
 
 const greetingKey = (): Key => { const h = new Date().getHours(); return h < 12 ? "home.morning" : h < 17 ? "home.afternoon" : "home.evening"; };
@@ -55,6 +56,9 @@ function FullHome() {
         </div>
       ))}
 
+      <MilestoneNote className="mt-3" />
+      <TodayFeed className="mt-3" />
+
       <Card tone="teal" className="mt-4 rounded-[22px] p-5">
         <div className="text-[20px] font-bold display leading-tight">{t("home.notWell")}</div>
         <p className="text-[13.5px] text-white/85 mt-1 mb-4">{t("home.notWellSub")}</p>
@@ -73,6 +77,9 @@ function FullHome() {
         </div>
         <ChevronRight size={18} className="text-faint shrink-0" />
       </Link>
+
+      <StreakRow className="mt-3" />
+      <OnThisDay className="mt-3" />
 
       <UploadReportCard onClick={() => setUpload(true)} className="mt-3" />
 

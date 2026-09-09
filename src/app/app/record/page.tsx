@@ -116,7 +116,7 @@ export default function Record() {
             {openRec.attachment && <AttachmentView attachment={openRec.attachment} />}
             <div className="mt-4 bg-paper border border-line rounded-[14px] p-3 text-[12.5px]">
               <SealCheck r={openRec} />
-              <button onClick={() => reverify(openRec)} className="text-teal font-semibold mt-2">{t("common.verifyNow")}</button>
+              <button onClick={() => { dispatch({ type: "countVerify", id: openRec.id }); reverify(openRec); }} className="text-teal font-semibold mt-2">{t("common.verifyNow")}</button>
               {verify === "ok" && <span className="ml-3 text-teal">{t("common.hashMatches")}</span>}
               {verify === "bad" && <span className="ml-3 text-danger">{t("common.hashMismatch")}</span>}
               <TechToggle on={tech} onToggle={() => setTech((v) => !v)} className="block mt-2" />

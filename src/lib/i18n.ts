@@ -39,6 +39,21 @@ export const en = {
   "seal.pending": "Not sealed yet",
   "seal.showTech": "Show technical details",
   "seal.hideTech": "Hide technical details",
+  "seal.verifiedOnce": "Verified once",
+  "seal.verifiedTimes": "Verified {n} times",
+
+  // ---- dashboard -------------------------------------------------------
+  "dash.streakOne": "1 day in a row",
+  "dash.streakDays": "{n} days in a row",
+  "dash.streakNone": "Log a vital to start a streak",
+  "dash.streakSub": "Days you logged a vital or a glass of water",
+  "dash.today": "Today",
+  "dash.todayCount": "{n} today",
+  "dash.hide": "Hide",
+  "dash.show": "Show",
+  "dash.onThisDay": "A year ago today",
+  "dash.milestoneSealed": "{n} entries sealed. Your record is building up.",
+  "dash.milestoneStreak": "{n} days in a row. That is a real habit.",
 
   // ---- bottom nav ------------------------------------------------------
   "nav.home": "Home",
@@ -434,6 +449,21 @@ export const hi: Record<Key, string> = {
   "seal.pending": "अभी सील नहीं हुई", // REVIEW
   "seal.showTech": "तकनीकी जानकारी दिखाएँ", // REVIEW
   "seal.hideTech": "तकनीकी जानकारी छिपाएँ", // REVIEW
+  "seal.verifiedOnce": "एक बार जाँचा गया", // REVIEW
+  "seal.verifiedTimes": "{n} बार जाँचा गया", // REVIEW
+
+  // ---- dashboard -------------------------------------------------------
+  "dash.streakOne": "लगातार 1 दिन", // REVIEW
+  "dash.streakDays": "लगातार {n} दिन", // REVIEW
+  "dash.streakNone": "सिलसिला शुरू करने के लिए कोई माप दर्ज कीजिए", // REVIEW
+  "dash.streakSub": "जिन दिनों आपने कोई माप या पानी दर्ज किया", // REVIEW
+  "dash.today": "आज", // REVIEW
+  "dash.todayCount": "आज {n}", // REVIEW
+  "dash.hide": "छिपाएँ", // REVIEW
+  "dash.show": "दिखाएँ", // REVIEW
+  "dash.onThisDay": "ठीक एक साल पहले आज", // REVIEW
+  "dash.milestoneSealed": "{n} प्रविष्टियाँ सील हो चुकी हैं। आपका रिकॉर्ड बन रहा है।", // REVIEW
+  "dash.milestoneStreak": "लगातार {n} दिन। यह सचमुच एक आदत बन गई है।", // REVIEW
 
   // ---- bottom nav ------------------------------------------------------
   "nav.home": "होम", // REVIEW

@@ -6,6 +6,7 @@ import { Sheet } from "@/components/sheet";
 import { Field, Select } from "@/components/field";
 import { useToast } from "@/components/toast";
 import { useStore, writeRecord } from "@/lib/store";
+import { StreakRow } from "@/components/dashboard";
 import { useT } from "@/lib/use-t";
 import type { Key } from "@/lib/i18n";
 import type { Vital } from "@/lib/types";
@@ -56,6 +57,7 @@ export default function Vitals() {
   return (
     <>
       <ScreenHeader title={t("vit.title")} backLabel={t("common.back")} right={<button onClick={() => setOpen(true)} className="inline-flex items-center gap-1 rounded-full bg-teal text-white px-4 min-h-[40px] text-[13.5px] font-semibold"><Plus size={16} /> {t("vit.log")}</button>} />
+      <StreakRow className="mb-3" />
       <Card>
         <div className="flex justify-between items-start">
           <div><div className="text-[12.5px] text-muted">{t("vit.bp")}</div><div className="display text-[26px] font-bold leading-tight">{bp.value} <span className="text-[13px] text-muted font-medium">{bp.unit}</span></div></div>

@@ -5,6 +5,7 @@ import { Card, Pill, ScreenHeader, StatRow } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { useStore } from "@/lib/store";
 import { SealCheck, TechToggle, useSealUnsealed } from "@/components/seal-check";
+import { VerifyCount } from "@/components/dashboard";
 import { shortHash } from "@/lib/hash";
 
 export default function Vault() {
@@ -38,6 +39,7 @@ export default function Vault() {
             <div className="min-w-0">
               <div className="font-medium truncate">{r.title}</div>
               <SealCheck r={r} className="mt-0.5" />
+              <VerifyCount id={r.id} className="mt-0.5" />
               {tech && <div className="mono text-[12px] text-muted mt-0.5">{shortHash(r.sha256)}</div>}
             </div>
             <span className="text-[11.5px] text-faint shrink-0">{new Date(r.occurredAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
