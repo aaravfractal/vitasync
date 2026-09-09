@@ -52,12 +52,39 @@ with sync_playwright() as p:
     pg.get_by_label("Mobile number").fill("9876543210"); pg.get_by_role("button",name="Send code").click()
     pg.get_by_label("6-digit code").fill("482913"); pg.get_by_role("button",name="Continue").click(); pg.wait_for_url("**/app")
     check("onboarding signs in", pg.url.endswith("/app"))
-    pg.wait_for_timeout(400)
+    pg.wait_for_timeout(700)
     cold=pg.locator("main.screen").inner_text()
-    # Nothing to report yet, so the dashboard says nothing — no zero streak, no
-    # empty feed, no anniversary card standing in for data that does not exist.
-    check("cold home invents no streak", "in a row" not in cold)
-    check("cold home invents no feed", "Hide" not in cold and "A year ago today" not in cold)
+    # Asha arrives with a history, so the dashboard has real numbers to state on
+    # the first load: a streak counted back from today, a year-ago comparison,
+    # and the sealed-entry milestone.
+    check("seeded streak reads on first load", bool(re.search(r"\b3[0-9] days in a row", cold)))
+    check("a year ago card, with the change since",
+          "A year ago today" in cold and "HbA1c 7.8% → 6.4%" in cold and "−1.4" in cold)
+    check("milestone fires once at ten sealed", pg.get_by_text("entries sealed. Your record is building up.", exact=False).count()==1)
+    # But nothing today yet, so the feed stays away rather than showing an empty box.
+    check("no feed before anything happens today", pg.get_by_role("button",name="Hide").count()==0)
+    # Dismissed for good, not until the next reload.
+    pg.get_by_role("button",name="Dismiss").first.click(); pg.wait_for_timeout(300)
+    check("milestone dismisses", pg.get_by_text("Your record is building up", exact=False).count()==0)
+    pg.reload(); pg.wait_for_timeout(700)
+    check("milestone stays dismissed", pg.get_by_text("Your record is building up", exact=False).count()==0)
+    # The 30-day streak milestone queues up behind it. Clear that too, so every
+    # later screen carries only its own dismissible things.
+    while pg.get_by_role("button",name="Dismiss").count():
+        pg.get_by_role("button",name="Dismiss").first.click(); pg.wait_for_timeout(250)
+    check("both milestones clear", pg.get_by_role("button",name="Dismiss").count()==0)
+    # The streak is counted, never assumed: empty the days and it goes quiet.
+    pg.evaluate("""() => { const s = JSON.parse(localStorage.getItem('vitasync.v1'));
+      s.activeDays = []; localStorage.setItem('vitasync.v1', JSON.stringify(s)); }""")
+    pg.reload(); pg.wait_for_timeout(700)
+    check("no streak without logged days", "in a row" not in pg.locator("main.screen").inner_text())
+    pg.evaluate("""() => { const s = JSON.parse(localStorage.getItem('vitasync.v1'));
+      const pad = (n) => String(n).padStart(2, '0');
+      s.activeDays = Array.from({length: 34}, (_, i) => { const d = new Date();
+        d.setDate(d.getDate() - (i + 1));
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; });
+      localStorage.setItem('vitasync.v1', JSON.stringify(s)); }""")
+    pg.reload(); pg.wait_for_timeout(500)
     # symptom → remind later → home reminder
     pg.goto(B+"/app/symptom"); pg.get_by_role("button",name="Dull headache since morning").click(); pg.wait_for_timeout(800)
     pg.get_by_label("Describe how you feel").fill("all over, since I woke up"); pg.get_by_label("Send").click(); pg.wait_for_timeout(1200)
@@ -125,9 +152,9 @@ with sync_playwright() as p:
     # vitals log
     pg.goto(B+"/app/vitals"); pg.get_by_role("button",name="Log").click(); pg.get_by_label("Metric").select_option("hr"); pg.get_by_label("Value (bpm)").fill("70"); pg.get_by_role("button",name="Save reading").click(); pg.wait_for_timeout(400)
     check("vital logged", pg.get_by_text("70 bpm").count()>=1)
-    check("streak starts on vitals", pg.get_by_text("1 day in a row").count()==1)
+    check("logging extends the streak", pg.get_by_text("35 days in a row").count()==1)
     pg.goto(B+"/app"); pg.wait_for_timeout(500)
-    check("streak on home", pg.get_by_text("1 day in a row").count()==1)
+    check("streak on home", pg.get_by_text("35 days in a row").count()==1)
     check("today feed lists the log", pg.get_by_text("Today", exact=False).count()>=1
           and pg.get_by_text("Resting heart rate 70 bpm").count()>=1)
     pg.get_by_role("button",name="Hide").click(); pg.wait_for_timeout(200)

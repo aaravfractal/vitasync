@@ -22,6 +22,22 @@ export interface Attachment {
   size: number; // plaintext bytes, for display only
 }
 
+/**
+ * One comparable number carried by a record — an HbA1c, a weight, an LDL.
+ *
+ * Free text in `summary` already states these, but a string cannot be compared
+ * against last year's string, so the number is written once more in a shape the
+ * dashboard can subtract. `label` is what makes two records comparable, so it
+ * has to match exactly between them; `betterWhen` says which direction is good
+ * news, because that is clinical knowledge and not something a delta can infer.
+ */
+export interface RecordMetric {
+  label: string;
+  value: number;
+  unit: string;
+  betterWhen: "lower" | "higher";
+}
+
 export interface HealthRecord {
   id: string;
   type: RecordType;
@@ -34,6 +50,8 @@ export interface HealthRecord {
   sealedAt?: string;
   ai?: AiSession; // ai_session records only
   attachment?: Attachment; // uploaded reports. sha256 is then the ciphertext hash.
+  /** Present only where a record carries a number worth trending. */
+  metric?: RecordMetric;
 }
 
 export interface Vital {

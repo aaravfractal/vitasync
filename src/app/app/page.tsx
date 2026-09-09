@@ -10,6 +10,7 @@ import { daysUsed } from "@/lib/demo-data";
 import { dayOrEmpty, formatSteps, todayKey } from "@/lib/wellness";
 import type { Key } from "@/lib/i18n";
 import { MilestoneNote, OnThisDay, StreakRow, TodayFeed } from "@/components/dashboard";
+import { useSealUnsealed } from "@/components/seal-check";
 import { ElderHome } from "./elder-home";
 
 const greetingKey = (): Key => { const h = new Date().getHours(); return h < 12 ? "home.morning" : h < 17 ? "home.afternoon" : "home.evening"; };
@@ -23,6 +24,9 @@ export default function Home() {
 
 function FullHome() {
   const { state, dispatch } = useStore();
+  // Home states how many entries are sealed, so it seals them like the ledger
+  // does rather than reporting zero until someone opens another screen.
+  useSealUnsealed();
   const { t, d } = useT();
   const first = state.patient.name.split(" ")[0];
   const due = [...state.prescriptions].map((p) => p.daysPrescribed - daysUsed(p)).sort((a, b) => a - b)[0];

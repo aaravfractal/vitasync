@@ -79,6 +79,27 @@ export function onThisDay(records: HealthRecord[], today: string, windowDays = 7
 }
 
 /**
+ * The same measurement taken since, and the change between them.
+ *
+ * Comparable means the same `label` on both records — an HbA1c against an
+ * HbA1c, never against an LDL. Returns null when there is nothing honest to
+ * subtract, and `better` comes from the metric's own `betterWhen` because
+ * whether a smaller number is good news is clinical, not arithmetic.
+ */
+export function onThisDayDelta(records: HealthRecord[], old: HealthRecord) {
+  const from = old.metric;
+  if (!from) return null;
+  const newer = records
+    .filter((r) => r.id !== old.id && r.metric?.label === from.label && r.occurredAt > old.occurredAt)
+    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))[0];
+  const to = newer?.metric;
+  if (!to) return null;
+  const change = Number((to.value - from.value).toFixed(2));
+  if (change === 0) return null;
+  return { from, to, change, better: from.betterWhen === "lower" ? change < 0 : change > 0 };
+}
+
+/**
  * The milestone this state has just reached, or null. Thresholds are checked
  * against what has already been shown, so each one fires once and never again.
  */

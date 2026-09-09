@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CalendarClock, CalendarDays, FileText, Flame, PillBottle, Stethoscope, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useT } from "@/lib/use-t";
-import { milestoneFor, onThisDay, streakDays, todayEvents, type TodayEvent } from "@/lib/streak";
+import { milestoneFor, onThisDay, onThisDayDelta, streakDays, todayEvents, type TodayEvent } from "@/lib/streak";
 import { todayKey } from "@/lib/wellness";
 
 /**
@@ -72,21 +72,38 @@ export function TodayFeed({ className }: { className?: string }) {
   );
 }
 
-/** The entry from about a year ago, if the timeline has one. */
+/**
+ * The entry from about a year ago, with the change since if the same
+ * measurement has been taken again. Measurement names, numbers and units are
+ * never translated (locked rule 5), so the comparison needs no copy of its own
+ * — which also keeps an unreviewed Hindi string off the home screen.
+ */
 export function OnThisDay({ className }: { className?: string }) {
   const { state } = useStore();
   const { t, d } = useT();
   const r = onThisDay(state.records, todayKey());
   if (!r) return null;
+  const delta = onThisDayDelta(state.records, r);
   return (
     <Link href="/app/record" className={`flex items-center gap-3 rounded-[18px] bg-surface border border-line p-4 ${className ?? ""}`}>
       <div className="w-[42px] h-[42px] rounded-[12px] bg-tint text-teal flex items-center justify-center shrink-0">
         <CalendarClock size={20} strokeWidth={1.9} />
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="text-[12px] text-muted">{t("dash.onThisDay")}</div>
         <div className="font-semibold text-[14px] truncate">{r.title}</div>
-        <div className="text-[12px] text-muted">{d(r.occurredAt, { day: "numeric", month: "short", year: "numeric" })}</div>
+        {delta ? (
+          <div className="flex items-center gap-1.5 mt-0.5 text-[12.5px]">
+            <span className="mono text-muted">
+              {delta.from.label} {delta.from.value}{delta.from.unit} → {delta.to.value}{delta.to.unit}
+            </span>
+            <span className={`mono font-semibold ${delta.better ? "text-teal" : "text-gold-text"}`}>
+              {delta.change > 0 ? "+" : "−"}{Math.abs(delta.change)}
+            </span>
+          </div>
+        ) : (
+          <div className="text-[12px] text-muted">{d(r.occurredAt, { day: "numeric", month: "short", year: "numeric" })}</div>
+        )}
       </div>
     </Link>
   );

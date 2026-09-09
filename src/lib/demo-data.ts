@@ -14,6 +14,41 @@ export const patient: Patient = {
   abhaLinked: true,
 };
 
+/**
+ * A year ago today, to the day.
+ *
+ * The "a year ago" card would otherwise depend on a hardcoded date that quietly
+ * stops matching a week later, and a demo screen that works only in the week it
+ * was written is worse than no screen. Computed once at module load, then frozen
+ * into the store on first sign-in like every other seed value.
+ */
+function aYearAgoToday(hour = 9, minute = 15) {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 1);
+  d.setHours(hour, minute, 0, 0);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(hour)}:${pad(minute)}:00+05:30`;
+}
+
+/**
+ * The days Asha has logged something, ending yesterday.
+ *
+ * Streaks are the one number here that cannot be a fixed list: it is counted
+ * backwards from today, so a hardcoded run would read as broken by the time
+ * anyone saw it. Ends yesterday rather than today so the first vital logged in
+ * front of a room visibly extends it.
+ */
+export function seedActiveDays(days = 34): string[] {
+  const out: string[] = [];
+  const pad = (n: number) => String(n).padStart(2, "0");
+  for (let i = 1; i <= days; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    out.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+  }
+  return out;
+}
+
 export const records: HealthRecord[] = [
   {
     id: "r1", type: "consult", occurredAt: "2026-08-24T10:30:00+05:30", provider: "Dr. Meera Joshi · Doon Clinic",
@@ -22,6 +57,7 @@ export const records: HealthRecord[] = [
   {
     id: "r2", type: "report", occurredAt: "2026-08-18T08:05:00+05:30", provider: "Dr Lal PathLabs",
     title: "HbA1c and lipid panel", summary: "HbA1c 6.4% (improving from 7.1). LDL 96 mg/dL in range. Hb 11.8 g/dL, watch.",
+    metric: { label: "HbA1c", value: 6.4, unit: "%", betterWhen: "lower" },
   },
   {
     id: "r3", type: "rx", occurredAt: "2026-08-04T17:20:00+05:30", provider: "Dr. Meera Joshi",
@@ -41,6 +77,33 @@ export const records: HealthRecord[] = [
   {
     id: "r5", type: "report", occurredAt: "2026-07-10T09:00:00+05:30", provider: "SRL Diagnostics",
     title: "Complete blood count", summary: "Within normal limits except Hb 11.6 g/dL.",
+  },
+  {
+    id: "r6", type: "consult", occurredAt: "2026-06-12T16:40:00+05:30", provider: "Dr. S. Bisht · CMI Hospital",
+    title: "Diabetes review", summary: "Metformin continued. Diet and walking discussed. Repeat HbA1c in 8 weeks.",
+  },
+  {
+    id: "r7", type: "report", occurredAt: "2026-05-02T08:30:00+05:30", provider: "Dr Lal PathLabs",
+    title: "Thyroid profile", summary: "TSH 3.1 mIU/L, T3 and T4 in range. No change advised.",
+  },
+  {
+    id: "r8", type: "rx", occurredAt: "2026-03-18T18:05:00+05:30", provider: "Dr. Meera Joshi",
+    title: "Vitamin D3 1000 IU", summary: "1 capsule each morning, 60 days. Recheck after the course.",
+  },
+  {
+    id: "r9", type: "report", occurredAt: "2026-01-22T08:10:00+05:30", provider: "SRL Diagnostics",
+    title: "Fasting glucose", summary: "112 mg/dL fasting. Above range; diet reviewed at the next visit.",
+  },
+  {
+    id: "r10", type: "consult", occurredAt: "2025-11-08T11:20:00+05:30", provider: "Dr. Meera Joshi · Doon Clinic",
+    title: "Seasonal cough", summary: "Viral, no antibiotic needed. Steam and fluids. Settled in a week.",
+  },
+  {
+    // The year-ago comparison. Same metric label as r2, so the home card can
+    // subtract the two and show a year of progress rather than an old title.
+    id: "r11", type: "report", occurredAt: aYearAgoToday(), provider: "Dr Lal PathLabs",
+    title: "HbA1c and lipid panel", summary: "HbA1c 7.8%. LDL 128 mg/dL. Metformin started at this visit.",
+    metric: { label: "HbA1c", value: 7.8, unit: "%", betterWhen: "lower" },
   },
 ];
 

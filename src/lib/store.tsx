@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from "react";
-import { patient as seedPatient, records as seedRecords, vitals as seedVitals, prescriptions as seedRx } from "./demo-data";
+import { patient as seedPatient, records as seedRecords, vitals as seedVitals, prescriptions as seedRx, seedActiveDays } from "./demo-data";
 import type { ConnectedDevice, HealthRecord, Patient, Prescription, Vital, WellnessDay, WellnessTargets } from "./types";
 import { emptyDay, todayKey } from "./wellness";
 import { canonicalRecord, sha256Hex } from "./hash";
@@ -85,7 +85,7 @@ const initial: State = {
   targets: { steps: 8000, calories: 400, activeMinutes: 45, water: 8 },
   wellness: emptyDay(""),
   lastWellnessLog: "",
-  activeDays: [],
+  activeDays: seedActiveDays(),
   verifyCounts: {},
   milestonesShown: [],
 };
