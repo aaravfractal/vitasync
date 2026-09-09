@@ -380,5 +380,134 @@ with sync_playwright() as p:
     check("insights table view", w.locator("table").count()==3 and w.locator("svg[role='img']").count()==0)
     check("insights banner survives the table view", w.get_by_text("no real user data exists", exact=False).count()==1)
     w.close()
+
+    # ---------------------------------------------------------------- demo run
+    # The on-stage script, in order, as one scenario. Everything above tests a
+    # feature in isolation; this tests the walk itself, because a demo is a
+    # sequence — a step can only break in the state the step before it left, and
+    # that is the failure the audience sees. Runs in Hindi from the picker on,
+    # the way it will be shown. Any step that fails drops a screenshot in shots/.
+    demo=b.new_context(viewport={"width":390,"height":844})
+    # The cap test above spends the day's chat budget, so this run needs the
+    # bypass header too or step 3c would 429 and read as a demo failure.
+    if BYPASS: demo.set_extra_http_headers({"x-vs-bypass": BYPASS})
+    demo.add_init_script(STUB)          # a mic that needs no speech service
+    dp=demo.new_page()
+    def step(n, cond, page=None):
+        ok=bool(cond)
+        print(("PASS " if ok else "FAIL ")+"demo · "+n)
+        if not ok:
+            fails.append("demo · "+n)
+            try: (page or dp).screenshot(path="shots/fail_%s.png" % re.sub(r"\W+","_",n).strip("_"))
+            except Exception: pass
+        return ok
+
+    # 1 — the language picker is the first thing on screen, before any pitch
+    dp.goto(B+"/onboarding"); dp.wait_for_timeout(300)
+    step("1 language picker comes first",
+         dp.get_by_role("button",name="हिन्दी",exact=True).count()==1
+         and dp.get_by_role("button",name="Continue with phone number").count()==0)
+
+    # 2 — हिन्दी, and the whole screen follows
+    dp.get_by_role("button",name="हिन्दी",exact=True).click(); dp.wait_for_timeout(400)
+    step("2 हिन्दी switches the app",
+         dp.get_by_role("button",name="मोबाइल नंबर से आगे बढ़ें").count()==1
+         # localeOf() writes a full locale, hi-IN, not a bare language tag
+         and dp.evaluate("document.documentElement.lang").startswith("hi"))
+    dp.get_by_role("button",name="मोबाइल नंबर से आगे बढ़ें").click()
+    dp.get_by_label("मोबाइल नंबर").fill("9876543210"); dp.get_by_role("button",name="कोड भेजें").click()
+    dp.get_by_label("6 अंकों का कोड").fill("482913"); dp.get_by_role("button",name="आगे बढ़ें").click()
+    dp.wait_for_url("**/app")
+    step("2b signs in and stays in हिन्दी", dp.get_by_role("link",name="लक्षण जाँचें").count()>=1)
+
+    # 3 — voice input: hi-IN, lands in the box, and is never sent on its own
+    dp.goto(B+"/app/symptom"); dp.wait_for_timeout(500)
+    dp.get_by_role("button",name="बोलकर बताएँ").click(); dp.wait_for_timeout(300)
+    step("3 mic listens in hi-IN", dp.evaluate("window.__recLang")=="hi-IN"
+         and dp.get_by_text("सुन रहे हैं… सामान्य रूप से बोलिए").count()==1)
+    dp.evaluate("window.__fire('सुबह से सिर दर्द है', true)"); dp.wait_for_timeout(300)
+    step("3b dictation lands in the box, unsent",
+         dp.get_by_label("बताइए आप कैसा महसूस कर रहे हैं").input_value()=="सुबह से सिर दर्द है"
+         and dp.locator("div.bg-teal.text-white").count()==0)
+    dp.get_by_label("भेजें").click(); dp.wait_for_timeout(2500)
+    step("3c the reply comes back in हिन्दी", bool(re.search(r"[ऀ-ॿ]", dp.locator("main").inner_text())))
+
+    # 4 — Elder Mode, then back off so the rest of the walk is at normal scale
+    dp.goto(B+"/app/profile/language"); dp.wait_for_timeout(300)
+    dp.get_by_role("switch",name="बुज़ुर्ग मोड").click(); dp.wait_for_timeout(400)
+    step("4 elder mode turns on", dp.evaluate("document.documentElement.classList.contains('elder')"))
+    dp.goto(B+"/app"); dp.wait_for_timeout(500)
+    step("4b elder home is four big cards, three-item nav",
+         dp.locator("main.screen a[class*='min-h-[92px]']").count()==4
+         and dp.locator("nav[aria-label='Primary'] a").count()==3)
+    dp.goto(B+"/app/profile/language"); dp.get_by_role("switch",name="बुज़ुर्ग मोड").click(); dp.wait_for_timeout(400)
+    step("4c elder mode turns back off", not dp.evaluate("document.documentElement.classList.contains('elder')"))
+
+    # 5 — airplane mode: the strip is the one thing that must survive no signal
+    dp.goto(B+"/u/k7q2m9x4e1"); dp.wait_for_timeout(400)
+    try: dp.wait_for_function("navigator.serviceWorker.controller !== null", timeout=15000)
+    except Exception: pass
+    dp.goto(B+"/app/emergency"); dp.wait_for_timeout(1500)
+    demo.set_offline(True)
+    dp.goto(B+"/u/k7q2m9x4e1"); dp.wait_for_timeout(1800)
+    step("5 offline strip still renders",
+         dp.get_by_text("Asha Rawat").count()>=1 and dp.get_by_text("B+",exact=True).count()>=1
+         and dp.locator("a[href='tel:+919876543210']").count()>=1)
+    step("5b offline strip is still locked",
+         dp.get_by_text("HbA1c and lipid panel").count()==0 and dp.get_by_text("Complete blood count").count()==0)
+    demo.set_offline(False); dp.wait_for_timeout(300)
+
+    # 6 — the camp desk, still in Hindi, signed in or not
+    dp.goto(B+"/camp"); dp.wait_for_timeout(500)
+    dp.get_by_label("पूरा नाम").fill("कमला देवी")
+    dp.get_by_label("मोबाइल नंबर").fill("9812345678")
+    dp.get_by_label("उम्र",exact=True).fill("64")
+    dp.get_by_role("button",name="महिला").click()
+    dp.get_by_role("button",name="B+",exact=True).click()
+    dp.get_by_label("गाँव या इलाका").fill("सहस्रधारा")
+    dp.get_by_role("button",name="दर्ज कीजिए",exact=True).click(); dp.wait_for_timeout(900)
+    step("6 registration prints a slip",
+         dp.get_by_text("दर्ज हो गया",exact=True).count()==1 and dp.locator(".camp-slip img").count()==1)
+    slip=dp.locator(".camp-slip").inner_text()
+    step("6b slip carries the strip facts and the no-OTP line",
+         "B+" in slip and ("no OTP needed for this strip" in slip or "आपातकालीन" in slip))
+
+    # 7 — actually scan the slip. BarcodeDetector reads the pixels of the printed
+    # QR, so this is the paramedic's phone camera and not a re-encode: whatever
+    # the image really carries is what gets opened below. Re-encoding and
+    # comparing bytes does NOT work here — the browser writes its PNG through
+    # canvas and node writes it through pngjs, so identical payloads differ.
+    tok=dp.evaluate("JSON.parse(localStorage.getItem('vitasync.v1')).campRegistrations[0].token")
+    want=B+"/u/"+tok
+    scanned=dp.evaluate("""() => new Promise((res) => {
+      const img = document.querySelector('.camp-slip img');
+      if (!img || !('BarcodeDetector' in window)) return res(null);
+      const go = () => new BarcodeDetector({formats:['qr_code']}).detect(img)
+        .then(r => res(r.length ? r[0].rawValue : ""))
+        .catch(() => res(null));
+      img.decode ? img.decode().then(go, go) : go();
+    })""")
+    if scanned is None:
+        step("7 the QR decodes to this patient's /u link (no decoder available)", False)
+    else:
+        step("7 the QR decodes to this patient's /u link", scanned==want)
+    # Follow what was actually read off the slip, falling back to the stored
+    # token only if this browser had no decoder, so the walk still completes.
+    dp.goto(scanned or want); dp.wait_for_timeout(800)
+    step("7b scanning the slip opens the strip, no code asked",
+         dp.get_by_text("कमला देवी").count()>=1 and dp.get_by_text("B+",exact=True).count()>=1
+         and dp.locator("main input").count()==0)
+    step("7c the scanned strip still gates the full record",
+         dp.get_by_role("button",name="पूरा रिकॉर्ड माँगें").count()==1)
+
+    # 8 & 9 — a timeline entry, and its seal re-checked in front of the room
+    dp.goto(B+"/app/record"); dp.wait_for_timeout(900)
+    step("8 the record opens on the timeline", dp.get_by_text("HbA1c and lipid panel").count()>=1)
+    dp.get_by_text("HbA1c and lipid panel").first.click(); dp.wait_for_timeout(500)
+    step("8b the entry opens", dp.get_by_role("dialog").count()==1)
+    dp.get_by_role("button",name="अभी जाँचें").click(); dp.wait_for_timeout(600)
+    step("9 verify now matches the seal", dp.get_by_text("मेल खाता है · कोई छेड़छाड़ नहीं").count()==1)
+    demo.close()
+
     b.close()
 print("\n%d failures"%len(fails)); print(fails)
