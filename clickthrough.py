@@ -4,10 +4,14 @@ Set RATE_LIMIT_BYPASS_TOKEN to the same value the server has and the browser's
 chat calls skip the /api/chat daily cap, so the suite can run repeatedly against
 one server. The cap itself is still tested below, without the header.
 """
-import os, re
+import base64, json, os, re
 from playwright.sync_api import sync_playwright
 B="http://127.0.0.1:3111"
 PDF=b"%PDF-1.4 minimal bytes, enough to prove the encryption path"
+# A distinctive run of the plaintext, and its base64. Either one turning up in
+# browser storage means the file was written unencrypted.
+MARK="enough to prove the encryption path"
+B64=base64.b64encode(PDF).decode()[:24]
 BYPASS=os.environ.get("RATE_LIMIT_BYPASS_TOKEN","")
 # A SpeechRecognition that never touches a speech service: `start` publishes the
 # language it was given and a `__fire` hook to push transcripts through onresult.
@@ -73,13 +77,22 @@ with sync_playwright() as p:
     pg.get_by_label("Title").fill("Lipid panel Aug"); pg.get_by_label("Lab or clinic").fill("Dr Lal PathLabs")
     pg.get_by_role("button",name="Encrypt and save").click(); pg.wait_for_timeout(900)
     check("upload lands in record", pg.get_by_text("Lipid panel Aug").count()>=1)
-    raw=pg.evaluate("localStorage.getItem('vitasync.v1')")
-    check("no plaintext in the store", "%PDF" not in raw and "JVBERi" not in raw)
-    head=pg.evaluate("""() => new Promise((res) => { const r = indexedDB.open('vitasync-vault');
+    # Locked claim: the file is encrypted on the device, so nothing readable is
+    # left behind. Checked against EVERY byte of both stores, not a prefix — a
+    # cipher that only masked the header would still pass a first-bytes test.
+    everything=pg.evaluate("""() => JSON.stringify(Object.fromEntries(
+      Object.keys(localStorage).map(k => [k, localStorage.getItem(k)])))""")
+    check("no plaintext anywhere in localStorage", MARK not in everything and B64 not in everything)
+    check("the file's bytes are not in localStorage", "%PDF" not in everything)
+    stored=pg.evaluate("""() => new Promise((res) => { const r = indexedDB.open('vitasync-vault');
       r.onsuccess = () => { const g = r.result.transaction('blobs').objectStore('blobs').getAll();
-        g.onsuccess = () => { const rows = g.result;
-          res(rows.length ? String.fromCharCode(...new Uint8Array(rows[0].ciphertext.slice(0, 8))) : ""); }; }; })""")
-    check("stored bytes are ciphertext", head != "" and not head.startswith("%PDF"))
+        g.onsuccess = () => { const rows = g.result; if (!rows.length) return res(null);
+          const b = new Uint8Array(rows[0].ciphertext);
+          res({ text: Array.from(b).map(c => String.fromCharCode(c)).join(""), bytes: b.length }); }; }; })""")
+    check("a blob was actually stored", stored is not None and stored["bytes"] > 0)
+    body=stored["text"] if stored else ""
+    check("stored bytes are ciphertext, end to end", MARK not in body and "%PDF" not in body)
+    check("ciphertext is not the plaintext", body != PDF.decode("latin-1"))
     ext=pg.evaluate("""() => new Promise((res) => { const r = indexedDB.open('vitasync-vault');
       r.onsuccess = () => { const g = r.result.transaction('keys').objectStore('keys').get('primary');
         g.onsuccess = () => res(g.result ? g.result.extractable : null); }; })""")
@@ -203,8 +216,41 @@ with sync_playwright() as p:
     # emergency share on arrival
     pg.goto(B+"/app/emergency/share"); pg.get_by_role("button",name="Share my record now").click(); pg.wait_for_timeout(300); check("emergency grant", pg.get_by_text("can see your full record").count()==1)
     pg.goto(B+"/app/profile/access"); check("emergency grant listed", pg.get_by_text("· Emergency").count()>=1)
+    # LOCKED RULE 1, asserted. The stage claim is that the one-time code goes to
+    # the PATIENT's or nominated caregiver's phone and to nobody else. What makes
+    # that true is not copy, it is that the requesting device gets no say in the
+    # destination and learns nothing it could use. Each of these four is a way
+    # that could quietly stop being true; if one fails, the claim is false.
+    otp_api=p.request.new_context(base_url=B)
+    inject={"action":"request","phone":"+919999999999","to":"+919999999999",
+            "sendTo":"9999999999","number":"9999999999","email":"doctor@clinic.example"}
+    r1=otp_api.post("/u/k7q2m9x4e1/otp", data=inject); t1=r1.text(); j1=r1.json()
+    check("otp ignores a caller-supplied destination", set(j1) <= {"ok","demoCode"} and "9999999999" not in t1 and "clinic.example" not in t1)
+    # The only number the doctor may ever see is the ICE contact on the strip
+    # (rule 1 puts it there on purpose). The reply itself carries no number.
+    check("otp response leaks no phone number", not re.search(r"\+91|\b[6-9]\d{9}\b", t1))
+    jar={c["name"]: c["value"] for c in otp_api.storage_state()["cookies"]}
+    ck=next((v for k,v in jar.items() if k.startswith("vs_otp_")), "")
+    payload=json.loads(base64.urlsafe_b64decode(ck.split(".")[0]+"==").decode())
+    # httpOnly hides the cookie from JS, not from the doctor's devtools, so the
+    # code must not be in it — only an HMAC of it.
+    check("otp cookie holds a hash, never the code", set(payload) <= {"codeHash","expiresAt","attempts","lockedUntil"}
+          and j1["demoCode"] not in ck and not re.search(r"\+91|\b[6-9]\d{9}\b", ck))
+    fresh={otp_api.post("/u/k7q2m9x4e1/otp", data={"action":"request"}).json()["demoCode"] for _ in range(3)}
+    check("otp codes are random, not derived from the token", len(fresh)==3 and all(len(c)==6 for c in fresh))
+    otp_api.dispose()
+
     # public page otp
-    pg.goto(B+"/u/k7q2m9x4e1"); pg.get_by_role("button",name="Request full record").click(); pg.wait_for_timeout(500)
+    pg.goto(B+"/u/k7q2m9x4e1")
+    # The strip is the whole point of a scan: it must stand alone, with no code
+    # asked for and no field to type one into, until the doctor asks for more.
+    check("strip needs no code", pg.get_by_text("Asha Rawat").count()>=1 and pg.get_by_text("B+",exact=True).count()>=1
+          and pg.locator("main input").count()==0)
+    check("gate offers no destination field", pg.get_by_label("6-digit code").count()==0)
+    pg.get_by_role("button",name="Request full record").click(); pg.wait_for_timeout(500)
+    # Once open, the only inputs are the log label and the code — never a number.
+    check("doctor cannot choose where the code goes", pg.locator("main input").count()==2
+          and pg.get_by_label("6-digit code").count()==1)
     code=pg.locator("span.mono.font-bold").inner_text(); pg.get_by_label("6-digit code").fill(code); pg.get_by_role("button",name="Open record").click(); pg.wait_for_timeout(1000)
     check("public otp unlock", pg.get_by_text("Approved by the patient").count()==1)
     # emergency directory: full list, nearest badge, call + directions per row
